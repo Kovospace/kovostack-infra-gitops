@@ -11,8 +11,8 @@ host: whoami.matejkovac.sk
 # whoami has no secrets of its own; the Infisical folder /whoami need not exist
 # for this to sync (a find over a missing folder returns nothing, it is not an
 # error). Set to true once there is something to read.
-secrets:
-  enabled: false
+#secrets:
+#  enabled: false
 
 resources:
   requests:

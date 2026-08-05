@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: nsr
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+
+spec:
+
+  project: default
+
+  sources:
+
+    ### Základné Kubernetes resources
+    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+      targetRevision: main
+      path: charts/app
+      helm:
+        valueFiles:
+          - $values/applications/whoami/values.yaml
+
+    ### Pointer na referencovaý values.yaml
+    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    # Must match `name` in the values file — the chart renders the Namespace,
+    # so CreateNamespace stays off.
+    namespace: nsr
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

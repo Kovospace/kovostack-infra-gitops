@@ -1,0 +1,26 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: storage
+  namespace: argocd
+  annotations:
+    # Early: StorageClasses must exist before any app claims a volume.
+    argocd.argoproj.io/sync-wave: "-5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+    targetRevision: main
+    path: infrastructure/storage
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      # Never prune a StorageClass automatically: PVs reference it by name, and
+      # removing it while volumes are bound leaves them unrecoverable through
+      # the API.
+      prune: false
+      selfHeal: true

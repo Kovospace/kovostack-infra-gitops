@@ -1,0 +1,30 @@
+{{- range $key, $vol := .Values.persistence }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "app.name" $ }}-{{ $key }}
+  namespace: {{ include "app.namespace" $ }}
+  labels:
+    {{- include "app.labels" $ | nindent 4 }}
+  annotations:
+    # Before the workload that mounts it.
+    argocd.argoproj.io/sync-wave: "-2"
+    # Never pruned. Removing this volume from values.yaml, renaming the app, or
+    # a mistaken `git rm` would otherwise delete the claim — and with it the
+    # data, irreversibly. Deleting a PVC has to be a deliberate kubectl action.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - {{ $vol.accessMode | default "ReadWriteOnce" }}
+  resources:
+    requests:
+      storage: {{ required (printf "persistence.%s.size is required" $key) $vol.size }}
+  {{- /* `default` would treat an explicit "" as unset, making it impossible to
+         opt back out to the cluster default. hasKey distinguishes the two. */}}
+  {{- $sc := $.Values.storageClass }}
+  {{- if hasKey $vol "storageClass" }}{{ $sc = $vol.storageClass }}{{ end }}
+  {{- with $sc }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+{{- end }}

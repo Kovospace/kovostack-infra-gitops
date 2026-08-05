@@ -55,6 +55,42 @@ Consequences worth knowing:
 Override the folder with `secrets.path` only when an app genuinely cannot own
 one named after itself — the convention is the feature.
 
+## Storage
+
+Each `persistence` entry becomes a PVC named `<name>-<key>`, mounted at its
+`mountPath`:
+
+```yaml
+persistence:
+  data:
+    size: 1Gi
+    mountPath: /app/data
+  uploads:
+    size: 10Gi
+    mountPath: /app/uploads
+```
+
+Three things the chart does on your behalf, all of them about not losing data:
+
+- **`Recreate` deployment strategy** as soon as any volume exists. A rolling
+  update starts the new pod before stopping the old one, and a ReadWriteOnce
+  volume cannot attach to both — the new pod blocks on attach, and if it ever
+  did succeed, two processes sharing one SQLite file corrupt it.
+- **`replicas > 1` is refused** with a ReadWriteOnce volume, at template time
+  rather than as a pod stuck in `ContainerCreating`.
+- **`Prune=false` on every PVC.** ArgoCD will not delete a claim when it
+  disappears from git, so a rename, a removed entry or a mistaken `git rm`
+  cannot destroy the data. The cost is that genuinely removing a volume needs a
+  deliberate `kubectl delete pvc`.
+
+Two caveats specific to this cluster, both from k3s' default `local-path`
+class:
+
+- **The data lives on one node's disk.** There is no replication and no
+  snapshot. Anything here needs its own backup — the cluster is not one.
+- **No `allowVolumeExpansion`.** Growing a volume later means creating a new
+  claim and copying, so size with headroom now.
+
 ## Local rendering
 
 ```bash

@@ -2,6 +2,48 @@
 
 ## Nice to have in the future
 
+### Backup CronJob for persistent volumes
+
+Nothing currently backs up PVC contents. `local-path-retain` protects against a
+deleted claim, but not against a lost VM or a corrupted file — and neither does
+git. **Restoring the cluster from this repo produces a healthy app with an empty
+database and no uploads.** Infisical covers the secrets; nothing covers the data.
+
+Add an opt-in CronJob to `charts/app`, driven by the existing `persistence`
+entries:
+
+```yaml
+backup:
+  enabled: true
+  schedule: "0 3 * * *"
+  sqlite: /app/data/payload.db   # optional: consistent DB snapshot
+  destination: s3:...            # restic repo
+```
+
+**The part that must not be got wrong:** a live SQLite file cannot be backed up
+with `cp`/`tar`. A copy taken mid-transaction restores as a corrupt database,
+and the failure is silent until the restore. Use SQLite's own snapshot:
+
+```bash
+sqlite3 /app/data/payload.db ".backup '/tmp/snapshot.db'"
+```
+
+then push the snapshot and the uploads directory with `restic` (deduplicating,
+with history, and it can verify a restore).
+
+Requirements worth settling before building it:
+
+- Off-VM destination — a backup on the same disk protects against nothing that
+  actually happens.
+- Restore **tested**, not assumed. An untested backup is a guess.
+- Retention, so it neither grows forever nor keeps only yesterday's corruption.
+- Alert on failure; a silently broken backup is worse than none, because it
+  stops anyone worrying about it.
+
+**Consider instead:** the platform already runs Postgres, and Payload has a
+Postgres adapter. Moving the database there reduces this to backing up uploads
+only, and inherits whatever backup story Postgres gets anyway.
+
 ### Infisical Kubernetes auth instead of a static machine identity
 
 Today the `ClusterSecretStore` authenticates with Universal Auth — a long-lived

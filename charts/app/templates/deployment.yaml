@@ -1,4 +1,9 @@
 {{- if .Values.image }}
+{{- range $k, $v := .Values.persistence }}
+  {{- if and (eq ($v.accessMode | default "ReadWriteOnce") "ReadWriteOnce") (gt (int $.Values.replicas) 1) }}
+    {{- fail (printf "volume %q is ReadWriteOnce and cannot be attached to %d pods — set replicas: 1, or accessMode: ReadWriteMany with a storage class that supports it" $k (int $.Values.replicas)) }}
+  {{- end }}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -9,6 +14,14 @@ metadata:
     {{- include "app.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicas }}
+  {{- if .Values.persistence }}
+  # Not RollingUpdate: it starts the new pod before stopping the old one, and a
+  # ReadWriteOnce volume cannot attach to both. The new pod would block on
+  # attach — and if it ever did succeed, two processes would share one SQLite
+  # file, which corrupts it.
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       {{- include "app.selectorLabels" . | nindent 6 }}
@@ -56,4 +69,22 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- if .Values.persistence }}
+          volumeMounts:
+            {{- range $key, $vol := .Values.persistence }}
+            - name: {{ $key }}
+              mountPath: {{ required (printf "persistence.%s.mountPath is required" $key) $vol.mountPath }}
+              {{- with $vol.subPath }}
+              subPath: {{ . }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+      {{- if .Values.persistence }}
+      volumes:
+        {{- range $key, $vol := .Values.persistence }}
+        - name: {{ $key }}
+          persistentVolumeClaim:
+            claimName: {{ include "app.name" $ }}-{{ $key }}
+        {{- end }}
+      {{- end }}
 {{- end }}

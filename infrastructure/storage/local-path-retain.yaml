@@ -1,0 +1,32 @@
+---
+# k3s' built-in `local-path` class has reclaimPolicy: Delete, so removing a PVC
+# also deletes the directory under /var/lib/rancher/k3s/storage — immediately
+# and irreversibly. `Prune=false` on the claims stops ArgoCD doing that, but
+# nothing stops a `kubectl delete pvc` or `kubectl delete namespace`.
+#
+# This class is identical except that it keeps the data. Deleting a PVC leaves
+# the PV in `Released` and the files on disk, turning an accident into an
+# inconvenience.
+#
+# Reusing a Released volume is deliberately manual: the PV keeps a claimRef to
+# the PVC that is gone, and will not bind to a new one until it is cleared —
+#   kubectl patch pv <pv> -p '{"spec":{"claimRef":null}}'
+# Until then the data sits there, recoverable straight off the filesystem.
+#
+# NOT marked as the cluster default: `local-path` stays the default so anything
+# that does not opt in behaves as upstream expects. charts/app opts in for every
+# app volume.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-path-retain
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain
+# Same as the stock class: bind only once a pod needs it, so the volume is
+# created on the node that will actually run the workload.
+volumeBindingMode: WaitForFirstConsumer
+# The local-path provisioner cannot grow a volume in place; stated explicitly so
+# the limitation is visible here rather than discovered during a resize.
+allowVolumeExpansion: false

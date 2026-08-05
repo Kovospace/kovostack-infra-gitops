@@ -3,8 +3,11 @@
 # is the whole configuration for a working, TLS-terminated, secret-consuming
 # deployment.
 name: whoami
-image: traefik/whoami
-imageTag: v1.10.4
+# nginx rather than traefik/whoami: whoami is built FROM scratch, so it has no
+# shell to write a test file with and never touches disk. nginx serves whatever
+# is in the mounted directory, which makes persistence visible over HTTP.
+image: nginx
+imageTag: alpine
 containerPort: 80
 host: whoami.matejkovac.sk
 
@@ -14,11 +17,16 @@ host: whoami.matejkovac.sk
 #secrets:
 #  enabled: false
 
-# PVC example
+# PVC example. Mounting over nginx' document root hides the image's default
+# index.html, so the app returns 403 until something is written into the volume
+# — which is itself proof the mount took effect.
+#
+# Key stays `data` (PVC name whoami-data) rather than being renamed to `html`:
+# the claims carry Prune=false, so a rename would strand the existing one.
 persistence:
   data:
     size: 128Mi
-    mountPath: /app/data
+    mountPath: /usr/share/nginx/html
 
 resources:
   requests:

@@ -19,7 +19,7 @@ spec:
       path: charts/app
       helm:
         valueFiles:
-          - $values/applications/whoami/values.yaml
+          - $values/applications/nsr/values.yaml
 
     ### Pointer na referencovaý values.yaml
     - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git

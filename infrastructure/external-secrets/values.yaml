@@ -1,0 +1,12 @@
+---
+external-secrets:
+  installCRDs: true
+
+  # The webhook must be ready before any ExternalSecret is applied.
+  webhook:
+    create: true
+  certController:
+    create: true
+
+  serviceMonitor:
+    enabled: false

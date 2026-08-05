@@ -1,0 +1,14 @@
+---
+# Consumed by templates/cluster-issuers.yaml.
+acme:
+  email: admin@example.com
+  ingressClassName: traefik
+
+cert-manager:
+  crds:
+    # Chart default is false; CRDs must be installed for the issuers below.
+    enabled: true
+    keep: true
+
+  prometheus:
+    enabled: false

@@ -1,0 +1,32 @@
+---
+# ArgoCD manages itself. Changes to infrastructure/argocd/values.yaml are
+# rolled out by the running ArgoCD instance.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Kovospace/kovostack-infra-gitops.git
+    targetRevision: main
+    path: infrastructure/argocd
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Namespaces are owned by namespaces/ (sync-wave -10).
+      - CreateNamespace=false
+      - ServerSideApply=true

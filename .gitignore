@@ -1,1 +1,10 @@
 .idea
+
+# Vendored Helm dependencies — ArgoCD resolves these itself.
+# Chart.lock stays out of git too: ArgoCD's `helm dependency build` fails hard
+# on a lock file that drifted from Chart.yaml, and versions are already pinned.
+infrastructure/*/charts/
+infrastructure/*/Chart.lock
+applications/*/charts/
+applications/*/Chart.lock
+*.tgz

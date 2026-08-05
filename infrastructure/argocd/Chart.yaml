@@ -1,0 +1,12 @@
+---
+# Umbrella chart: pins the upstream chart, all overrides live in values.yaml.
+# ArgoCD runs `helm dependency build` on this directory automatically.
+apiVersion: v2
+name: argocd
+description: ArgoCD, self-managed
+type: application
+version: 0.1.0
+dependencies:
+  - name: argo-cd
+    version: 10.2.3
+    repository: https://argoproj.github.io/argo-helm

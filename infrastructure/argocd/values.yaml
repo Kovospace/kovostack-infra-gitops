@@ -1,0 +1,28 @@
+---
+# Values are nested under the dependency name.
+argo-cd:
+  global:
+    domain: argocd.example.com
+
+  configs:
+    params:
+      # Traefik terminates TLS; let ArgoCD serve plain HTTP behind it.
+      server.insecure: true
+    cm:
+      timeout.reconciliation: 180s
+
+  server:
+    ingress:
+      enabled: false
+      # Enable once traefik + cert-manager are up:
+      # enabled: true
+      # ingressClassName: traefik
+      # annotations:
+      #   cert-manager.io/cluster-issuer: letsencrypt-production
+      # tls: true
+
+  dex:
+    enabled: false
+
+  notifications:
+    enabled: false

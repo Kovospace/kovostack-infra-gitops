@@ -1,0 +1,46 @@
+---
+traefik:
+  ingressClass:
+    enabled: true
+    isDefaultClass: true
+
+  service:
+    enabled: true
+    spec:
+      type: LoadBalancer
+
+  ports:
+    web:
+      # cert-manager's HTTP-01 challenges must not be caught by the redirect.
+      allowACMEByPass: true
+      http:
+        redirections:
+          entryPoint:
+            to: websecure
+            scheme: https
+            permanent: true
+    websecure:
+      http:
+        tls:
+          enabled: true
+
+  providers:
+    kubernetesCRD:
+      enabled: true
+      allowCrossNamespace: false
+    kubernetesIngress:
+      enabled: true
+      # Writes the LB address back onto Ingress status, which cert-manager reads.
+      publishedService:
+        enabled: true
+
+  log:
+    level: INFO
+
+  accessLog:
+    enabled: true
+
+  metrics:
+    prometheus:
+      service:
+        enabled: false

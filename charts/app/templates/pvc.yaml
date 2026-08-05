@@ -8,8 +8,15 @@ metadata:
   labels:
     {{- include "app.labels" $ | nindent 4 }}
   annotations:
-    # Before the workload that mounts it.
-    argocd.argoproj.io/sync-wave: "-2"
+    # Deliberately NO sync-wave. An earlier wave deadlocks: ArgoCD waits for the
+    # PVC to report Healthy before starting the next wave, but a
+    # WaitForFirstConsumer volume stays Pending until a pod consumes it — and
+    # that pod is in the later wave. Each side waits for the other, forever.
+    #
+    # No ordering is needed anyway: a pod referencing a PVC that does not exist
+    # yet stays Pending until it does, which is the same result without the
+    # deadlock.
+    #
     # Never pruned. Removing this volume from values.yaml, renaming the app, or
     # a mistaken `git rm` would otherwise delete the claim — and with it the
     # data, irreversibly. Deleting a PVC has to be a deliberate kubectl action.

@@ -25,7 +25,17 @@ traefik:
       # changing it there too.
       nodePort: 30080
 
-      # cert-manager's HTTP-01 challenges must not be caught by the redirect.
+      # NOTE: this does NOT exempt /.well-known/acme-challenge from the
+      # redirection below — nothing does; the entrypoint redirect catches every
+      # request on :80. It only decides whether a user-defined router may serve
+      # ACME challenges instead of Traefik's own resolver, and since no
+      # `certificatesResolvers` are configured here, it is effectively a no-op.
+      # Kept because it makes the intent explicit if a resolver is ever added.
+      #
+      # cert-manager's HTTP-01 still works: Let's Encrypt follows the 308 to
+      # https and deliberately does not verify the certificate it lands on, so
+      # the solver is reached over websecure even while that host is still
+      # being served Traefik's default self-signed cert.
       allowACMEByPass: true
 
       # :80 arrives as ordinary HTTP from nginx-proxy, which sets

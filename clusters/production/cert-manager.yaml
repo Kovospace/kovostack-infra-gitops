@@ -11,7 +11,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/Kovospace/kovostack-infra-gitops.git
+    repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
     targetRevision: main
     path: infrastructure/cert-manager
     helm:

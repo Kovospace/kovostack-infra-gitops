@@ -8,3 +8,8 @@ infrastructure/*/Chart.lock
 applications/*/charts/
 applications/*/Chart.lock
 *.tgz
+
+# Filled-in credentials — only the .example.yaml belongs in git.
+bootstrap/repo-credentials.yaml
+*deploy-key*
+!*deploy-key*.pub

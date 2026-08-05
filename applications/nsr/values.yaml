@@ -1,9 +1,9 @@
 ---
 name: nsr
 #TODO
-image: traefik/whoami
-imageTag: v1.10.4
-containerPort: 80
+image: registry.matejkovac.sk/nsr-frontend
+imageTag: sha-a4acb4c
+containerPort: 3000
 host: nsr.matejkovac.sk
 
 # The two bind mounts from the docker-compose deployment, as claims. The
@@ -36,9 +36,6 @@ env:
   # API, in addition to NEXT_PUBLIC_SERVER_URL. Only needed when the site is
   # reached from more than one origin (e.g. bare IP for testing, or www).
   ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk
-
-secrets:
-  enabled: true
 
 resources:
   requests:

@@ -17,13 +17,16 @@ argo-cd:
       ingressClassName: traefik
       # Host and TLS SAN both come from global.domain above.
       annotations:
-        # Staging first: the HTTP-01 path is long — internet -> platform edge
-        # -> nginx-proxy -> NodePort 30080 -> traefik -> solver — and Let's
-        # Encrypt rate-limits failures at 5/hour per domain. Once
-        # `kubectl -n argocd get certificate` reports READY=True, switch this
-        # to letsencrypt-production and delete the argocd-server-tls secret so
-        # a real certificate is requested.
-        cert-manager.io/cluster-issuer: letsencrypt-staging
+        # Validated against letsencrypt-staging first, because the HTTP-01 path
+        # is long — internet -> platform edge -> nginx-proxy -> NodePort 30080
+        # -> traefik -> solver — and Let's Encrypt rate-limits *failures* at
+        # 5/hour per domain. That budget was worth having: the path was broken
+        # for several rounds (CLUSTER_INGRESS_IP defaulted to the container's
+        # own loopback) and none of it counted against the real limit.
+        #
+        # Keep that order for any new host: staging until
+        # `kubectl -n argocd get certificate` reports READY=True, then flip.
+        cert-manager.io/cluster-issuer: letsencrypt-production
       # Issues into the argocd-server-tls secret, which Traefik then serves.
       tls: true
 

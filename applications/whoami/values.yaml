@@ -1,0 +1,22 @@
+---
+# Example app — delete once you have a real one. Kept minimal on purpose: this
+# is the whole configuration for a working, TLS-terminated, secret-consuming
+# deployment.
+name: whoami
+image: traefik/whoami
+imageTag: v1.10.4
+containerPort: 80
+host: whoami.matejkovac.sk
+
+# whoami has no secrets of its own; the Infisical folder /whoami need not exist
+# for this to sync (a find over a missing folder returns nothing, it is not an
+# error). Set to true once there is something to read.
+secrets:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    memory: 64Mi

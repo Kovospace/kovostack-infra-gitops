@@ -1,4 +1,27 @@
 ---
+# Consumed by templates/cluster-secret-store.yaml.
+infisical:
+  storeName: infisical
+
+  # The platform's Infisical, via the edge. Must match SECRETS_HOST in the
+  # platform .env — not the 127.0.0.1 port binding, which the cluster cannot
+  # reach.
+  hostAPI: https://secrets.matejkovac.sk
+
+  # From the Infisical UI: Project → Settings → Project Slug, and the
+  # environment you want this cluster bound to (prod / staging / dev).
+  projectSlug: kovostack
+  environmentSlug: prod
+
+  # NAME of the Kubernetes Secret holding the Infisical machine identity — not
+  # the credential itself. The clientId/clientSecret inside it never appear in
+  # git; they are created directly in the cluster, see
+  # bootstrap/infisical-credentials.example.yaml.
+  #
+  # This is the one credential that cannot come from external-secrets, because
+  # it is what external-secrets authenticates with.
+  credentialsSecret: infisical-credentials
+
 external-secrets:
   installCRDs: true
 

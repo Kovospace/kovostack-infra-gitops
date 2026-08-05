@@ -1,0 +1,48 @@
+---
+# The only required value. Everything else is derived from it:
+#
+#   namespace              <name>
+#   Infisical folder       /<name>
+#   generated Secret       <name>-secrets
+#   TLS Secret             <name>-tls
+#
+# Override the derived values below only where an app genuinely differs.
+name: ""
+
+# --- workload ---------------------------------------------------------------
+# Leave `image` empty and no Deployment or Service is rendered — the chart then
+# provides only the namespace, secrets and ingress for an app whose workload
+# comes from its own chart.
+image: ""
+imageTag: ""
+imagePullPolicy: IfNotPresent
+replicas: 1
+containerPort: 8080
+
+# Plain env vars. Anything sensitive belongs in Infisical, not here — it is
+# injected wholesale from the synced Secret via envFrom.
+env: {}
+
+resources: {}
+#  requests: {cpu: 50m, memory: 64Mi}
+#  limits:   {memory: 256Mi}
+
+# Probed on containerPort when set. Empty disables the probe rather than
+# defaulting to "/", which would mark apps healthy that merely 404.
+healthPath: ""
+
+# --- ingress ----------------------------------------------------------------
+# Leave `host` empty for an app with no public route (worker, cron, internal).
+host: ""
+ingressClassName: traefik
+clusterIssuer: letsencrypt-production
+servicePort: 80
+
+# --- secrets ----------------------------------------------------------------
+secrets:
+  enabled: true
+  store: infisical
+  refreshInterval: 1h
+  # Infisical folder to sync. Defaults to /<name> — the convention. Set this
+  # only when an app must read a folder that is not named after it.
+  path: ""

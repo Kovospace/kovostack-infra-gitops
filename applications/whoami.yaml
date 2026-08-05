@@ -1,0 +1,39 @@
+---
+# Template for every app. Copy, change the two `whoami` occurrences, done —
+# the chart derives the rest from `name` in the values file.
+#
+# Two sources: the shared chart, and this repo again as a plain ref so the
+# values file can be addressed as $values. Both must pin the same
+# targetRevision or a sync can mix a chart and values from different commits.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: whoami
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+      targetRevision: main
+      path: charts/app
+      helm:
+        valueFiles:
+          - $values/applications/whoami/values.yaml
+    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+      targetRevision: main
+      # Nothing is rendered from this source; it exists so the values file above
+      # can be referenced. It must therefore carry no `path`.
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    # Must match `name` in the values file — the chart renders the Namespace,
+    # so CreateNamespace stays off.
+    namespace: whoami
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

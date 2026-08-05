@@ -17,7 +17,11 @@ spec:
     targetRevision: main
     path: applications
     directory:
-      recurse: true
+      # NOT recursive, deliberately. Application manifests live at
+      # applications/*.yaml; each app's values live in applications/<app>/ and
+      # are pulled in by the Application itself via the $values source ref.
+      # Recursing would try to apply those values.yaml files as manifests.
+      recurse: false
       include: '*.yaml'
   destination:
     server: https://kubernetes.default.svc

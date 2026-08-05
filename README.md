@@ -15,8 +15,27 @@ infrastructure/     cluster components as umbrella Helm charts
   external-secrets/
   traefik/
 namespaces/         Namespace manifests, synced before everything else
-applications/       workload Applications
+charts/
+  app/              shared chart: the resources every app repeats
+applications/       one Application per workload + its values
 ```
+
+## Adding an app
+
+`charts/app` turns one value into everything an app repeats — namespace,
+secrets, ingress, certificate, and optionally the workload itself. `name`
+derives the lot, including the Infisical folder it reads:
+
+```yaml
+# applications/myapp/values.yaml — the whole app
+name: myapp
+image: ghcr.io/kovospace/myapp
+host: myapp.matejkovac.sk
+```
+
+Secrets follow the same convention: everything in Infisical `/myapp` is synced
+into `myapp-secrets` and mounted as env vars, so **adding a secret needs no
+commit**. See `charts/app/README.md`.
 
 ## How it fits together
 
@@ -44,8 +63,12 @@ directory for local conventions.
 ## Before the first sync
 
 - Replace the placeholders: `argo-cd.global.domain` in
-  `infrastructure/argocd/values.yaml` and `acme.email` in
-  `infrastructure/cert-manager/values.yaml`.
+  `infrastructure/argocd/values.yaml`, `acme.email` in
+  `infrastructure/cert-manager/values.yaml`, and the `infisical.*` block in
+  `infrastructure/external-secrets/values.yaml`.
+- Apply the two hand-managed credentials in `bootstrap/`: the repo deploy key
+  and the Infisical machine identity. Neither can come from git or from
+  external-secrets — they are what makes those work in the first place.
 - `repoURL` in every Application points at
   `https://github.com/Kovospace/kovostack-infra-gitops.git` — update it if the
   repository moves.

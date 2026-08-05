@@ -10,23 +10,23 @@ host: nsr.matejkovac.sk
 # mountPaths must stay exactly as they were there — they are what the app is
 # configured to write to, and a mismatch means it writes into the container
 # filesystem instead and loses everything on the next restart.
-persistence:
-  data:
-    # was /home/kovo/docker/volumes/nsr/sqlite/db
-    # SQLite database. Small, but the one thing that must not be lost.
-    size: 128Mi
-    mountPath: /app/data
-  uploads:
-    # was /home/kovo/docker/volumes/nsr/media
-    # Uploaded flyers and DJ sets. Inside Next.js' public/ tree, so these are
-    # served as static files — only the media subdirectory is shadowed by the
-    # mount, the rest of public/ still comes from the image.
-    #
-    # Sized for growth: k3s' local-path class has no allowVolumeExpansion, so
-    # growing this later means a new claim and a copy. DJ sets are audio; 10Gi
-    # goes faster than it looks.
-    size: 10Gi
-    mountPath: /app/public/media
+#persistence:
+#  data:
+#    # was /home/kovo/docker/volumes/nsr/sqlite/db
+#    # SQLite database. Small, but the one thing that must not be lost.
+#    size: 128Mi
+#    mountPath: /app/data
+#  uploads:
+#    # was /home/kovo/docker/volumes/nsr/media
+#    # Uploaded flyers and DJ sets. Inside Next.js' public/ tree, so these are
+#    # served as static files — only the media subdirectory is shadowed by the
+#    # mount, the rest of public/ still comes from the image.
+#    #
+#    # Sized for growth: k3s' local-path class has no allowVolumeExpansion, so
+#    # growing this later means a new claim and a copy. DJ sets are audio; 10Gi
+#    # goes faster than it looks.
+#    size: 10Gi
+#    mountPath: /app/public/media
 
 env:
   DATABASE_URI: file:/app/data/nsr.db

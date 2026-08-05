@@ -17,10 +17,15 @@ metadata:
     # yet stays Pending until it does, which is the same result without the
     # deadlock.
     #
-    # Never pruned. Removing this volume from values.yaml, renaming the app, or
-    # a mistaken `git rm` would otherwise delete the claim — and with it the
-    # data, irreversibly. Deleting a PVC has to be a deliberate kubectl action.
-    argocd.argoproj.io/sync-options: Prune=false
+    # NOT Prune=false. That kept the claim, but ArgoCD then reported the app
+    # OutOfSync forever over a resource it had been told never to remove, which
+    # blocked every later sync — it protected the data by breaking the delivery
+    # of everything else.
+    #
+    # Delete=false is narrower: it only stops the claim being swept up when the
+    # Application itself is deleted. Normal pruning still works, so removing a
+    # volume from values.yaml removes the claim and the app stays Synced.
+    argocd.argoproj.io/sync-options: Delete=false
 spec:
   accessModes:
     - {{ $vol.accessMode | default "ReadWriteOnce" }}

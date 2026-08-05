@@ -112,10 +112,27 @@ Three things the chart does on your behalf, all of them about not losing data:
   did succeed, two processes sharing one SQLite file corrupt it.
 - **`replicas > 1` is refused** with a ReadWriteOnce volume, at template time
   rather than as a pod stuck in `ContainerCreating`.
-- **`Prune=false` on every PVC.** ArgoCD will not delete a claim when it
-  disappears from git, so a rename, a removed entry or a mistaken `git rm`
-  cannot destroy the data. The cost is that genuinely removing a volume needs a
-  deliberate `kubectl delete pvc`.
+- **`Delete=false` on every PVC**, so the claim is not swept up when the
+  Application itself is deleted. Normal pruning still works, so the app never
+  gets stuck OutOfSync.
+
+**What actually protects the data is the StorageClass, not the annotation.**
+`local-path-retain` sets `reclaimPolicy: Retain`, so deleting a PVC leaves the
+PV and the files on disk. That holds however the claim is removed — pruned by
+ArgoCD, deleted by hand, or lost with the namespace.
+
+The limit worth knowing: a retained volume does **not** reattach automatically.
+Delete a PVC and recreate it and you get a fresh, empty volume; the old data
+sits in a `Released` PV, readable straight off the filesystem and reattachable
+only by clearing its `claimRef` by hand:
+
+```bash
+kubectl get pv                     # find the Released one
+kubectl patch pv <pv> -p '{"spec":{"claimRef":null}}'
+```
+
+So the guarantee is "your data is never destroyed", not "your data always comes
+back by itself".
 
 Two caveats specific to this cluster, both from k3s' default `local-path`
 class:

@@ -1,7 +1,7 @@
 ---
 # Consumed by templates/cluster-issuers.yaml.
 acme:
-  email: admin@example.com
+  email: kovo.mato@gmail.com
   ingressClassName: traefik
 
 cert-manager:

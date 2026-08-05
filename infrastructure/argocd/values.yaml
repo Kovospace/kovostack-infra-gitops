@@ -2,7 +2,7 @@
 # Values are nested under the dependency name.
 argo-cd:
   global:
-    domain: argocd.example.com
+    domain: argocd.matejkovac.sk
 
   configs:
     params:

@@ -37,6 +37,9 @@ env:
   # reached from more than one origin (e.g. bare IP for testing, or www).
   ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk
 
+secrets:
+  enabled: true
+
 resources:
   requests:
     cpu: 100m

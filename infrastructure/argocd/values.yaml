@@ -13,13 +13,19 @@ argo-cd:
 
   server:
     ingress:
-      enabled: false
-      # Enable once traefik + cert-manager are up:
-      # enabled: true
-      # ingressClassName: traefik
-      # annotations:
-      #   cert-manager.io/cluster-issuer: letsencrypt-production
-      # tls: true
+      enabled: true
+      ingressClassName: traefik
+      # Host and TLS SAN both come from global.domain above.
+      annotations:
+        # Staging first: the HTTP-01 path is long — internet -> platform edge
+        # -> nginx-proxy -> NodePort 30080 -> traefik -> solver — and Let's
+        # Encrypt rate-limits failures at 5/hour per domain. Once
+        # `kubectl -n argocd get certificate` reports READY=True, switch this
+        # to letsencrypt-production and delete the argocd-server-tls secret so
+        # a real certificate is requested.
+        cert-manager.io/cluster-issuer: letsencrypt-staging
+      # Issues into the argocd-server-tls secret, which Traefik then serves.
+      tls: true
 
   dex:
     enabled: false

@@ -10,8 +10,15 @@ Values for a dependency are nested under its chart name:
 # infrastructure/traefik/values.yaml
 traefik:          # <- dependency name from Chart.yaml
   service:
-    type: LoadBalancer
+    spec:
+      type: NodePort
 ```
+
+A key the chart does not define is **silently ignored** — Helm merges it and
+renders the default anyway. The example above is a live case: the Traefik chart
+has no `service.type`, only `service.spec`, so `service.type: NodePort` leaves
+the Service a LoadBalancer with no error anywhere. Render the chart and read
+the output before trusting a values change.
 
 ArgoCD's repo-server runs `helm dependency build` on these directories, so no
 `charts/` directory or `Chart.lock` needs to be committed.

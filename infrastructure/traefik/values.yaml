@@ -7,19 +7,64 @@ traefik:
   service:
     enabled: true
     spec:
-      type: LoadBalancer
+      # NodePort, not LoadBalancer: k3s here runs with `--disable=servicelb`,
+      # so nothing would ever assign an external IP and the Service would sit
+      # at <pending> forever while its NodePorts got random numbers. The
+      # platform's nginx edge (kovostack-infra-platform, same VM) reaches the
+      # cluster through these two fixed ports instead.
+      #
+      # This chart has no `service.type` value — the Service spec comes only
+      # from `service.spec`, so a `type:` written one level up is silently
+      # ignored.
+      type: NodePort
 
   ports:
     web:
+      # Contract with the platform edge: proxy/conf.d/00-cluster.conf forwards
+      # every non-platform Host on :80 here. Changing this number means
+      # changing it there too.
+      nodePort: 30080
+
       # cert-manager's HTTP-01 challenges must not be caught by the redirect.
       allowACMEByPass: true
+
+      # :80 arrives as ordinary HTTP from nginx-proxy, which sets
+      # X-Forwarded-For — nginx cannot emit a PROXY header from its HTTP proxy
+      # module, so this entrypoint must NOT expect one.
+      forwardedHeaders:
+        trustedIPs: &platformSources
+          # Where the platform's requests appear to come from once kube-proxy
+          # has masqueraded NodePort traffic to the node's own address. Broad,
+          # but safe: a source address cannot be spoofed on an established TCP
+          # connection, so an untrusted client simply gets no say over its
+          # forwarded identity.
+          - 10.0.0.0/8
+          - 172.16.0.0/12
+          - 192.168.0.0/16
+          - 127.0.0.1/32
+          # The node itself — a public VPS address is in none of the above.
+          - 159.195.214.64/32
+
       http:
         redirections:
           entryPoint:
             to: websecure
             scheme: https
             permanent: true
+
     websecure:
+      # The edge routes :443 here by SNI and passes the TLS through untouched,
+      # which is what lets cert-manager rather than the platform own these
+      # certificates.
+      nodePort: 30443
+
+      # ...and because those bytes are opaque, the PROXY protocol is the only
+      # way the client's address survives the hop. The edge always sends one
+      # (`proxy_protocol on`), so this must be configured — otherwise the
+      # header is parsed as TLS and every handshake fails.
+      proxyProtocol:
+        trustedIPs: *platformSources
+
       http:
         tls:
           enabled: true

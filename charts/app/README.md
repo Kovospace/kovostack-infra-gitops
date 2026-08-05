@@ -55,6 +55,40 @@ Consequences worth knowing:
 Override the folder with `secrets.path` only when an app genuinely cannot own
 one named after itself — the convention is the feature.
 
+## Pulling from the private registry
+
+zot denies anonymous access, so an image from it needs a credential. The chart
+renders one **automatically when `image` starts with `registry.host`**: a public
+image gets nothing, `registry.matejkovac.sk/apps/nsr` gets a
+`kubernetes.io/dockerconfigjson` Secret named `<name>-registry` plus the
+matching `imagePullSecrets` entry.
+
+There is no dockerconfigjson in git, and there should never be one — that file
+is base64, not encryption, so committing it publishes the robot's password. Git
+holds only the *name* of the Infisical key; the value is fetched by
+external-secrets and assembled in the cluster.
+
+```
+Infisical  /platform/ZOT_K8S_PASSWORD
+      │  external-secrets, hourly
+      ▼
+Secret  <app>-registry   (kubernetes.io/dockerconfigjson, one per namespace)
+      │
+      ▼
+kubelet pulls  registry.matejkovac.sk/apps/<app>
+```
+
+- The credential is the read-only **`k8s` robot** from zot's `accessControl`: it
+  can pull `apps/**` and `charts/**` and push nothing, so a compromised node
+  cannot overwrite an image.
+- One Secret per namespace — `imagePullSecrets` cannot cross namespaces. It is
+  the same robot each time, not one per app.
+- Set `registry.pullSecret: true` for an app whose workload lives in its own
+  chart: `image` is empty here, so there is nothing to detect. That chart then
+  references `<name>-registry` itself.
+- Rotating the password is a change in Infisical only. New pulls pick it up on
+  the next refresh; running pods are unaffected, their pull already happened.
+
 ## Storage
 
 Each `persistence` entry becomes a PVC named `<name>-<key>`, mounted at its

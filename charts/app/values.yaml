@@ -64,6 +64,29 @@ ingressClassName: traefik
 clusterIssuer: letsencrypt-production
 servicePort: 80
 
+# --- private registry -------------------------------------------------------
+# Pulling from the platform's zot needs credentials — anonymous access is denied
+# there. The password never enters git: it is read from Infisical and rendered
+# into a dockerconfigjson Secret in the app's namespace.
+registry:
+  # An image whose name starts with this host gets a pull secret automatically;
+  # public images (traefik/whoami, ghcr.io/...) do not. Must match REGISTRY_HOST
+  # in the platform repo's .env.
+  host: registry.matejkovac.sk
+
+  # The read-only robot from zot's accessControl: it can pull apps/** and
+  # charts/**, and cannot push anything.
+  username: k8s
+
+  # Where that robot's password lives in Infisical. Shared by every app, so it
+  # is deliberately not the app's own folder.
+  secretsPath: /platform
+  passwordKey: ZOT_K8S_PASSWORD
+
+  # Empty = decide from `image`. Set true for an app whose workload lives in its
+  # own chart, where `image` is empty here and there is nothing to detect.
+  pullSecret: ""
+
 # --- secrets ----------------------------------------------------------------
 secrets:
   enabled: true

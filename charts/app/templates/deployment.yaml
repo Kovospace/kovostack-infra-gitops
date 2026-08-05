@@ -30,6 +30,10 @@ spec:
       labels:
         {{- include "app.labels" . | nindent 8 }}
     spec:
+      {{- if include "app.usePullSecret" . }}
+      imagePullSecrets:
+        - name: {{ include "app.pullSecretName" . }}
+      {{- end }}
       containers:
         - name: {{ include "app.name" . }}
           image: "{{ .Values.image }}:{{ .Values.imageTag | default "latest" }}"

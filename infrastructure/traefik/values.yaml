@@ -85,9 +85,27 @@ traefik:
       allowCrossNamespace: false
     kubernetesIngress:
       enabled: true
-      # Writes the LB address back onto Ingress status, which cert-manager reads.
+
+      # Both settings feed the same field — Ingress .status.loadBalancer.ingress
+      # — so exactly one may be active.
+      #
+      # publishedService copies the address from the traefik Service, but that
+      # Service is a NodePort (servicelb is disabled so it cannot fight nginx
+      # for 80/443) and only type: LoadBalancer Services ever get a
+      # status.loadBalancer address. There was nothing to copy, so the field
+      # stayed empty on every Ingress in the cluster.
+      #
+      # That is not merely cosmetic: ArgoCD's built-in Ingress health check
+      # reports Healthy only when the field is populated, so every app — and
+      # therefore the root app — sat at Progressing forever, and anything
+      # gated on health (`argocd app wait`, a later sync wave) would hang.
       publishedService:
-        enabled: true
+        enabled: false
+
+      # Publish the node instead. Truthful: the NodePorts genuinely listen
+      # here, and this is the address the platform edge forwards to.
+      ingressEndpoint:
+        ip: "159.195.214.64"
 
   log:
     level: INFO

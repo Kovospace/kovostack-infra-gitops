@@ -14,6 +14,12 @@ host: whoami.matejkovac.sk
 #secrets:
 #  enabled: false
 
+# PVC example
+persistence:
+  data:
+    size: 128Mi
+    mountPath: /app/data
+
 resources:
   requests:
     cpu: 10m

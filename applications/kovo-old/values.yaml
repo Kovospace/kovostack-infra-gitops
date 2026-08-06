@@ -1,0 +1,30 @@
+---
+name: kovo-old
+image: kovospace-frontend-old
+
+containerPort: 3000
+host: old.matejkovac.sk
+clusterIssuer: letsencrypt-staging
+
+persistence:
+  db:
+    # SQLite database.
+    size: 128Mi
+    mountPath: /var/app/db/databases
+  uploads:
+    size: 10Gi
+    mountPath: /var/app/public/uploads
+
+env:
+  RAILS_ENV: production
+  RAILS_SERVE_STATIC_FILES: true
+
+secrets:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    memory: 512Mi

@@ -1,6 +1,6 @@
 ---
 name: nsr
-image: registry.matejkovac.sk/nsr-frontend
+image: nsr-frontend
 # imageTag lives in versions/nsr.yaml — written by CI, loaded after this file.
 # Setting it here too would create a second source of truth that always loses.
 containerPort: 3000

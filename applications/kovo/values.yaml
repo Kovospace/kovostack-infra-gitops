@@ -4,7 +4,7 @@ image: kovospace-frontend
 
 # Nastavenie domény
 containerPort: 3000
-host: space.matejkovac.sk
+host: kovo.space
 
 # Pripojenie na postgres databázu
 externalServices:
@@ -27,8 +27,8 @@ persistence:
 env:
   # DATABASE_URI: "" # Moved into vault
   # PAYLOAD_SECRET: "" # Moved into vault
-  NEXT_PUBLIC_SERVER_URL: https://space.matejkovac.sk
-  ALLOWED_ORIGINS: https://www.space.matejkovac.sk,https://space.matejkovac.sk
+  NEXT_PUBLIC_SERVER_URL: https://kovo.space
+  ALLOWED_ORIGINS: https://www.kovo.space,https://kovo.space
 
 resources:
   requests:

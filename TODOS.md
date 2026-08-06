@@ -35,11 +35,10 @@ sources:
     ref: values
 ```
 
-**Why it matters:** today every app tracks `charts/app` at `main`, so a chart
-change reaches all of them on the next reconcile. The PVC sync-wave deadlock and
-the `Prune=false` sync block each broke every workload simultaneously for
-exactly this reason. Pinned versions turn that into a per-app upgrade you can
-stage.
+**What it would still add**, now that pinning works via git tags: `helm search`,
+consumption from outside these repositories, immutable packaged artifacts rather
+than a mutable git tag, and a natural home if a second chart appears. Worth
+doing when a pipeline exists anyway — not urgent.
 
 What it needs:
 
@@ -51,9 +50,8 @@ What it needs:
   `enableOCI: true`) with credentials — another bootstrap secret, same shape as
   the Infisical and deploy-key ones.
 
-The chart does not have to move repositories for this; only the published
-artifact needs to live in the registry. Splitting `charts/` into its own repo is
-a separate decision and is not required.
+The chart already lives in `kovostack-helm-charts`, so this is purely about
+publishing an artifact from it — the source does not move again.
 
 ### Backup CronJob for persistent volumes
 

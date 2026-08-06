@@ -1,5 +1,5 @@
 ---
-name: nsr
+name: kovo
 image: registry.matejkovac.sk/kovospace-frontend
 containerPort: 3000
 host: space.matejkovac.sk

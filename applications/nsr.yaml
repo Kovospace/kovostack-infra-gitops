@@ -31,7 +31,7 @@ spec:
           - $values/applications/nsr/values.yaml
           - $values/versions/nsr.yaml
 
-    ### Pointer na referencovaý values.yaml
+      ### Pointer na referencovaý values.yaml
     # Stays on main so config and image-tag changes apply immediately; only the
     # chart above is pinned.
     - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git

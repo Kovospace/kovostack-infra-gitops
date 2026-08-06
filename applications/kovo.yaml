@@ -14,10 +14,13 @@ spec:
   sources:
 
     ### Základné Kubernetes resources
-    # Pinned to a chart tag, not main: a chart change no longer reaches every
-    # app at once. Upgrade one app, watch it, then move the next.
-    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
-      targetRevision: chart-app-1.0.0
+    # Pinned. Possible only because the chart lives in a different repository —
+    # ArgoCD refuses two revisions of the *same* repo, which is why this cannot
+    # point at charts/app in this repo.
+    #
+    # Upgrading is a per-app decision: bump this, watch it, then move the next.
+    - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
+      targetRevision: chart-app-1.1.0
       path: charts/app
       helm:
         # Order matters — later files win. versions/ is written by CI and

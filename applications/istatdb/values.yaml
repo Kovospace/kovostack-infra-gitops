@@ -1,0 +1,26 @@
+---
+name: istatdb
+image: istatdb-frontend
+
+containerPort: 3000
+host: istatdb.matejkovac.sk
+clusterIssuer: letsencrypt-staging
+
+persistence:
+  db:
+    # SQLite database.
+    size: 128Mi
+    mountPath: /app/db
+
+env:
+  RAILS_ENV: production
+
+secrets:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    memory: 768Mi

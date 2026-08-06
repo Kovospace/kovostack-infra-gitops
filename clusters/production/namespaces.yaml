@@ -9,7 +9,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: infra
   source:
     repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
     targetRevision: main

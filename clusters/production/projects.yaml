@@ -1,0 +1,59 @@
+---
+# Two projects, so the Applications list can be filtered by Project in the UI:
+# cluster plumbing in one, things you actually deploy in the other.
+#
+# They carry the earliest sync-wave in the repo because an Application that
+# names a project which does not exist yet is rejected outright.
+#
+# `root` deliberately stays in the built-in `default` project: it is what
+# creates these, and it cannot depend on itself.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infra
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  description: Cluster infrastructure — ingress, certificates, secrets, storage
+  # Upstream Helm repos as well as this one; the umbrella charts pull from them.
+  sourceRepos:
+    - '*'
+  destinations:
+    - server: '*'
+      namespace: '*'
+  # Unrestricted: this is the layer that installs CRDs, ClusterRoles,
+  # StorageClasses and webhooks. Narrowing it here only breaks upgrades of the
+  # upstream charts, which add resource kinds without asking.
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: applications
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  description: Workloads deployed from charts/app
+  # Only this repo. An app cannot be pointed at an arbitrary chart repository
+  # without a commit here first.
+  sourceRepos:
+    - git@github.com:Kovospace/kovostack-infra-gitops.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: '*'
+  # Namespace only. charts/app renders one per app, so this cannot be empty —
+  # but nothing here has any business creating a CRD, ClusterRole or
+  # StorageClass, and now it cannot.
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

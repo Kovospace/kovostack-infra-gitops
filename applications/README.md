@@ -15,40 +15,41 @@ as manifests; the per-app subdirectories are reached through the Application's
 `$values` source ref instead. Adding a values file to the top level would make
 ArgoCD try to apply it as a Kubernetes object.
 
-## Chart version pinning — not currently possible
+## Chart version pinning
 
-Both sources track `main`, so **every app picks up a chart change on the next
-reconcile**. That is a real risk: a single bad annotation in `charts/app` hits
-every workload at once, which has already happened.
+The chart lives in
+[kovostack-helm-charts](https://github.com/Kovospace/kovostack-helm-charts) and
+each Application pins a tag:
 
-It cannot be fixed by pinning the chart source to a tag. ArgoCD rejects a
-multi-source Application that references two revisions of the same repository:
+```yaml
+sources:
+  - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
+    targetRevision: chart-app-1.1.0     # chart, pinned
+    path: charts/app
+    helm:
+      valueFiles:
+        - $values/applications/nsr/values.yaml
+        - $values/versions/nsr.yaml
+  - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+    targetRevision: main                 # values, live
+    ref: values
+```
+
+**Separate repositories is what makes this work.** ArgoCD rejects a multi-source
+Application referencing two revisions of the *same* repo, so while the chart sat
+in `charts/app` here it could not be pinned at all — the `$values` source has to
+stay on `main` for CI deploys to take effect:
 
 ```
 cannot reference a different revision of the same repository
-($values references "…" while the application references "chart-app-1.0.0")
 ```
 
-So the three options are:
+Upgrading a chart is now per-app: bump one app's `targetRevision`, watch it,
+then move the next. Previously every app tracked the chart at `main`, which is
+how a single bad annotation broke every workload at once.
 
-| | Pinning | CI deploys |
-|---|---|---|
-| both sources on `main` — **current** | ❌ | ✅ |
-| both sources on the tag | ✅ | ❌ `versions/` needs a new tag each deploy |
-| chart in a separate repo or OCI registry | ✅ | ✅ |
-
-Pinning both would break deployment, since `versions/<app>.yaml` has to take
-effect the moment CI pushes it. **Getting both requires the chart to live
-somewhere other than this repo** — see `TODOS.md`.
-
-Tags are still cut on every chart change, using the convention
-**`chart-<chart_name>-<semver>`**, so the history is there and the move to OCI
-is a change of `repoURL` rather than a re-versioning exercise:
-
-```bash
-# bump version: in charts/app/Chart.yaml, commit, then
-git tag chart-app-1.1.0 && git push --tags
-```
+Releasing a new chart version is documented in the charts repo. Tag convention
+is **`chart-<chart_name>-<semver>`**.
 
 ## Adding an app
 

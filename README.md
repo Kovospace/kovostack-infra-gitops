@@ -15,10 +15,14 @@ infrastructure/     cluster components as umbrella Helm charts
   external-secrets/
   traefik/
 namespaces/         Namespace manifests, synced before everything else
-charts/
-  app/              shared chart: the resources every app repeats
 applications/       one Application per workload + its values
+versions/           image tags, written by CI
 ```
+
+The `app` chart lives in a separate repository,
+[kovostack-helm-charts](https://github.com/Kovospace/kovostack-helm-charts), so
+Applications can pin a chart version — ArgoCD refuses two revisions of one
+repository in a multi-source Application.
 
 ## Adding an app
 

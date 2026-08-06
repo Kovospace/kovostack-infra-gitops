@@ -4,10 +4,14 @@
 
 ### Publish charts/app to the OCI registry
 
-**This is now the only way to get chart version pinning.** Tagging the chart in
-this repo was tried and does not work: ArgoCD refuses a multi-source Application
-that references two revisions of the same repository, and the `$values` source
-must stay on `main` so CI deploys take effect.
+Pinning itself is **already solved** — the chart moved to `kovostack-helm-charts`
+and Applications pin git tags there. This is now only about publishing built
+artifacts rather than consuming a git path: `helm search`, consumption from
+outside these repos, and immutable packaged versions.
+
+The original blocker, for the record — tagging the chart while it lived in this
+repo failed because ArgoCD refuses a multi-source Application that references two
+revisions of the same repository:
 
 ```
 cannot reference a different revision of the same repository

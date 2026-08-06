@@ -14,12 +14,14 @@ spec:
   sources:
 
     ### Základné Kubernetes resources
-    # NOT pinned to a chart tag, and it cannot be while the chart lives in this
-    # repository: ArgoCD refuses a multi-source Application that references two
-    # revisions of the same repo, and the $values source below must stay on main
-    # so CI deploys take effect. See applications/README.md.
-    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
-      targetRevision: main
+    # Pinned. Possible only because the chart lives in a different repository —
+    # ArgoCD refuses two revisions of the *same* repo, which is why this could
+    # not be pinned while the chart sat in charts/app here.
+    #
+    # Upgrading is now a per-app decision: bump this, watch it, then move the
+    # next app. A chart change no longer reaches everything at once.
+    - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
+      targetRevision: chart-app-1.1.0
       path: charts/app
       helm:
         # Order matters — later files win. versions/ is written by CI and

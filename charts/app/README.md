@@ -89,6 +89,38 @@ kubelet pulls  registry.matejkovac.sk/apps/<app>
 - Rotating the password is a change in Infisical only. New pulls pick it up on
   the next refresh; running pods are unaffected, their pull already happened.
 
+## Reaching services outside the cluster
+
+Postgres, Redis and the rest of the platform stack run in Docker on the VM, not
+in Kubernetes. `externalServices` gives each a name inside the cluster:
+
+```yaml
+externalServices:
+  postgres:
+    address: 172.17.0.1     # must be an IP; hostnames are not valid here
+    port: 5432
+```
+
+The app then connects to `postgres:5432` like any in-cluster service. It renders
+a **Service with no selector** plus a matching **EndpointSlice** — the standard
+way to point cluster DNS at something outside it.
+
+The value is the indirection. The app never learns where the database actually
+is, so moving it — to another host, or into the cluster later — changes this one
+entry rather than every connection string in Infisical.
+
+⚠️ **`address` must be reachable from a pod.** The host's `127.0.0.1` is not:
+inside a pod that is the pod's own loopback, which is the same trap that broke
+the ACME challenge path. Bind the container to a host address (`POSTGRES_BIND`
+in the platform `.env`) and use that one.
+
+Prefer a **private** address such as the `docker0` gateway over the VM's public
+IP. A database bound to a public address is protected by nothing but a firewall
+rule, and that is one mistake away from being open to the internet.
+
+Rendering fails immediately if `address` or `port` is missing, or if the name
+collides with the app's own Service.
+
 ## Storage
 
 Each `persistence` entry becomes a PVC named `<name>-<key>`, mounted at its

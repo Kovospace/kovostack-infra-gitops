@@ -31,6 +31,25 @@ resources: {}
 # defaulting to "/", which would mark apps healthy that merely 404.
 healthPath: ""
 
+# --- services outside the cluster --------------------------------------------
+# Things running on the VM but not in Kubernetes — Postgres, Redis, anything in
+# the platform's Docker stack. Each entry becomes a selector-less Service plus a
+# matching EndpointSlice, so the app reaches it by name:
+#
+#   externalServices:
+#     postgres:
+#       address: 172.17.0.1     # must be an IP, not a hostname
+#       port: 5432
+#
+#   -> the app connects to postgres:5432
+#
+# `address` has to be one the pods can actually reach. The host's 127.0.0.1 is
+# not it — inside a pod that is the pod's own loopback. Bind the container to a
+# host address instead (POSTGRES_BIND in the platform .env) and use that.
+# Prefer a private one such as the docker0 gateway over the VM's public IP: a
+# database on a public address is protected only by a firewall rule.
+externalServices: {}
+
 # --- storage ----------------------------------------------------------------
 # Each entry becomes a PersistentVolumeClaim named <name>-<key>, mounted into
 # the container at mountPath. Keys are yours to choose.

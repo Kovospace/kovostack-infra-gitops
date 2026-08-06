@@ -1,0 +1,29 @@
+---
+name: nsr
+image: registry.matejkovac.sk/kovospace-frontend
+containerPort: 3000
+host: space.matejkovac.sk
+
+persistence:
+  media:
+    size: 10Gi
+    mountPath: /app/public/media
+  images:
+    size: 10Gi
+    mountPath: /app/public/images
+  icons:
+    size: 1Gi
+    mountPath: /app/public/icons
+
+#env:
+  # DATABASE_URI: "" # Moved into vault
+  # PAYLOAD_SECRET: "" # Moved into vault
+  # NEXT_PUBLIC_SERVER_URL: https://neser.sk
+  # ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

@@ -1,9 +1,18 @@
 ---
 name: kovo
 image: kovospace-frontend
+
+# Nastavenie domény
 containerPort: 3000
 host: space.matejkovac.sk
 
+# Pripojenie na postgres databázu
+externalServices:
+  postgres:
+    address: 172.17.0.1 # docker0 gateway — must be an IP, not a hostname
+    port: 5432
+
+# Volumes
 persistence:
   media:
     size: 10Gi

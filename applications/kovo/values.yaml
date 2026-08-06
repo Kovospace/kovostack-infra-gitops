@@ -1,6 +1,6 @@
 ---
 name: kovo
-image: registry.matejkovac.sk/kovospace-frontend
+image: kovospace-frontend
 containerPort: 3000
 host: space.matejkovac.sk
 

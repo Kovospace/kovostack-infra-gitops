@@ -14,14 +14,22 @@ spec:
   sources:
 
     ### Základné Kubernetes resources
+    # Pinned to a chart tag, not main: a chart change no longer reaches every
+    # app at once. Upgrade one app, watch it, then move the next.
     - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
-      targetRevision: main
+      targetRevision: chart-app-1.0.0
       path: charts/app
       helm:
+        # Order matters — later files win. versions/ is written by CI and
+        # carries only the image tag, so a deploy never touches the file a
+        # human edits.
         valueFiles:
           - $values/applications/nsr/values.yaml
+          - $values/versions/nsr.yaml
 
     ### Pointer na referencovaý values.yaml
+    # Stays on main so config and image-tag changes apply immediately; only the
+    # chart above is pinned.
     - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
       targetRevision: main
       ref: values

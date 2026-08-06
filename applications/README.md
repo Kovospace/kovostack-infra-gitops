@@ -15,6 +15,36 @@ as manifests; the per-app subdirectories are reached through the Application's
 `$values` source ref instead. Adding a values file to the top level would make
 ArgoCD try to apply it as a Kubernetes object.
 
+## Chart version pinning
+
+The chart source is pinned to a tag, **not** `main`:
+
+```yaml
+- repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+  targetRevision: chart-app-1.0.0     # ← chart, pinned
+  path: charts/app
+- repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+  targetRevision: main                 # ← values, live
+  ref: values
+```
+
+Tag convention: **`chart-<chart_name>-<semver>`**.
+
+Only the chart is pinned; the values source stays on `main` so configuration
+and image-tag changes still apply immediately. Upgrading a chart is a
+per-app decision — bump one app's `targetRevision`, watch it, then move the
+next. Without this, a chart edit reaches every app on the next reconcile, which
+is how a single bad annotation took down every workload at once.
+
+Releasing a chart change:
+
+```bash
+# bump version: in charts/app/Chart.yaml, commit, then
+git tag chart-app-1.1.0 && git push --tags
+```
+
+Then raise `targetRevision` per app, one at a time.
+
 ## Adding an app
 
 1. `cp -r whoami myapp && mv whoami.yaml myapp.yaml`

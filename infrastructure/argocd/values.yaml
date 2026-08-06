@@ -11,6 +11,75 @@ argo-cd:
     cm:
       timeout.reconciliation: 180s
 
+      # The chart's default exclusion list, with EndpointSlice removed.
+      #
+      # charts/app renders a selector-less Service plus a hand-written
+      # EndpointSlice for every `externalServices` entry — that pair is how an
+      # in-cluster name points at Postgres on the VM. While EndpointSlice was
+      # excluded, ArgoCD applied the Service, dropped the slice, and reported
+      # Synced: the name resolved to a ClusterIP with no backends and every
+      # connection was refused, with nothing anywhere naming the cause.
+      #
+      # Helm replaces this string wholesale, so the rest of the upstream list is
+      # reproduced verbatim. Re-check it against the chart's values on a major
+      # ArgoCD upgrade — new entries will not appear here on their own.
+      #
+      # Core v1 Endpoints stays excluded: nothing here writes one by hand, and
+      # Kubernetes generates one per Service.
+      resource.exclusions: |
+        ### Network resources created by the Kubernetes control plane and excluded to reduce the number of watched events and UI clutter
+        - apiGroups:
+          - ''
+          kinds:
+          - Endpoints
+        ### Internal Kubernetes resources excluded reduce the number of watched events
+        - apiGroups:
+          - coordination.k8s.io
+          kinds:
+          - Lease
+        ### Internal Kubernetes Authz/Authn resources excluded reduce the number of watched events
+        - apiGroups:
+          - authentication.k8s.io
+          - authorization.k8s.io
+          kinds:
+          - SelfSubjectReview
+          - TokenReview
+          - LocalSubjectAccessReview
+          - SelfSubjectAccessReview
+          - SelfSubjectRulesReview
+          - SubjectAccessReview
+        ### Intermediate Certificate Request excluded reduce the number of watched events
+        - apiGroups:
+          - certificates.k8s.io
+          kinds:
+          - CertificateSigningRequest
+        - apiGroups:
+          - cert-manager.io
+          kinds:
+          - CertificateRequest
+        ### Cilium internal resources excluded reduce the number of watched events and UI Clutter
+        - apiGroups:
+          - cilium.io
+          kinds:
+          - CiliumIdentity
+          - CiliumEndpoint
+          - CiliumEndpointSlice
+        ### Kyverno intermediate and reporting resources excluded reduce the number of watched events and improve performance
+        - apiGroups:
+          - kyverno.io
+          - reports.kyverno.io
+          - wgpolicyk8s.io
+          kinds:
+          - PolicyReport
+          - ClusterPolicyReport
+          - EphemeralReport
+          - ClusterEphemeralReport
+          - AdmissionReport
+          - ClusterAdmissionReport
+          - BackgroundScanReport
+          - ClusterBackgroundScanReport
+          - UpdateRequest
+
   server:
     ingress:
       enabled: true

@@ -40,10 +40,13 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-20"
 spec:
-  description: Workloads deployed from charts/app
-  # Only this repo. An app cannot be pointed at an arbitrary chart repository
-  # without a commit here first.
+  description: Workloads deployed from the app chart
+  # These two only — an app cannot be pointed at an arbitrary chart repository
+  # without a commit here first. Both are needed because every app is
+  # multi-source: the chart comes from kovostack-helm-charts at a pinned tag,
+  # its values from this repo at main.
   sourceRepos:
+    - git@github.com:Kovospace/kovostack-helm-charts.git
     - git@github.com:Kovospace/kovostack-infra-gitops.git
   destinations:
     - server: https://kubernetes.default.svc

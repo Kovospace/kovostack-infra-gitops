@@ -25,7 +25,7 @@ filter useful — plumbing in one bucket, your own workloads in the other.
 | Project | Applications | Source repos | Cluster-scoped resources |
 |---|---|---|---|
 | `infra` | argocd, cert-manager, external-secrets, traefik, namespaces, storage, applications | any | any |
-| `applications` | everything using `charts/app` | this repo only | `Namespace` only |
+| `applications` | everything using the app chart | this repo + kovostack-helm-charts | `Namespace` only |
 | `default` | `root` alone | — | — |
 
 The asymmetry is deliberate. `infra` installs CRDs, ClusterRoles, webhooks and
@@ -33,7 +33,8 @@ StorageClasses, and upstream charts add resource kinds between releases without
 asking — narrowing it there buys nothing and breaks upgrades. Workloads have no
 business creating any of that, so `applications` is restricted to `Namespace`,
 which `charts/app` needs for the namespace it renders. It is also pinned to
-this repository, so no app can be pointed at an arbitrary chart repo without a
+the two repos it legitimately needs — this one for values, kovostack-helm-charts
+for the chart — so no app can be pointed at an arbitrary chart repo without a
 commit here first.
 
 `root` stays in the built-in `default` project: it is what creates these two,

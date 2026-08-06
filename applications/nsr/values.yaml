@@ -1,6 +1,5 @@
 ---
 name: nsr
-#TODO
 image: registry.matejkovac.sk/nsr-frontend
 imageTag: sha-a4acb4c
 containerPort: 3000
@@ -31,11 +30,11 @@ persistence:
 env:
   DATABASE_URI: file:/app/data/nsr.db
   # PAYLOAD_SECRET: "" # Moved into vault
-  NEXT_PUBLIC_SERVER_URL: https://neser.sk
+#  NEXT_PUBLIC_SERVER_URL: https://neser.sk
   # Extra origins (comma-separated) allowed to log into the admin / call the
   # API, in addition to NEXT_PUBLIC_SERVER_URL. Only needed when the site is
   # reached from more than one origin (e.g. bare IP for testing, or www).
-  ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk
+#  ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk
 
 resources:
   requests:

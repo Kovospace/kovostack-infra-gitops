@@ -24,11 +24,11 @@ persistence:
     size: 1Gi
     mountPath: /app/public/icons
 
-#env:
+env:
   # DATABASE_URI: "" # Moved into vault
   # PAYLOAD_SECRET: "" # Moved into vault
-  # NEXT_PUBLIC_SERVER_URL: https://neser.sk
-  # ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk
+  NEXT_PUBLIC_SERVER_URL: https://space.matejkovac.sk
+  ALLOWED_ORIGINS: https://www.space.matejkovac.sk,https://space.matejkovac.sk
 
 resources:
   requests:

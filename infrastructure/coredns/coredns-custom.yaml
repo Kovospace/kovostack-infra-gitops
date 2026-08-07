@@ -30,3 +30,6 @@ data:
   kovospace.override: |
     rewrite name exact kovo.space traefik.traefik.svc.cluster.local
     rewrite name exact www.kovo.space traefik.traefik.svc.cluster.local
+  neser.override: |
+    rewrite name exact neser.sk traefik.traefik.svc.cluster.local
+    rewrite name exact www.neser.sk traefik.traefik.svc.cluster.local

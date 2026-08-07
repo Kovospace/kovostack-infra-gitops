@@ -25,4 +25,4 @@ resources:
   limits:
     memory: 768Mi
 
-replicas: 0
+#replicas: 0

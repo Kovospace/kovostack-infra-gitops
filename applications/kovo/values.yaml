@@ -5,6 +5,7 @@ image: kovospace-frontend
 # Nastavenie domény
 containerPort: 3000
 host: kovo.space
+wwwAlias: true
 
 # Pripojenie na postgres databázu
 externalServices:

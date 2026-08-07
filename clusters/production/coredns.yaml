@@ -1,0 +1,28 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: coredns
+  namespace: argocd
+  annotations:
+    # Before cert-manager (10) and traefik (20): an HTTP-01 self check that
+    # resolves the wrong address fails silently, and the certificate it blocks
+    # is the one every other wave assumes is there.
+    argocd.argoproj.io/sync-wave: "-15"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: infra
+  source:
+    repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+    targetRevision: main
+    path: infrastructure/coredns
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      # CoreDNS itself is k3s', not ours — this Application owns only the
+      # coredns-custom ConfigMap that k3s imports. Editing it by hand is how
+      # cluster DNS ends up differing from git with nothing to say so.
+      selfHeal: true

@@ -1,0 +1,32 @@
+---
+# Split-horizon DNS for the names this cluster serves.
+#
+# CoreDNS forwards anything it does not own to the VM's /etc/resolv.conf, which
+# points at the provider's resolvers. When a domain moves *onto* this cluster
+# those resolvers keep handing out the previous A record until their own cache
+# expires — kovo.space stayed on 95.216.187.218 with 7.8 hours left on a TTL the
+# authoritative zone had already dropped to 600s.
+#
+# The cost is not a slow rollout, it is a certificate that never issues.
+# cert-manager runs its HTTP-01 self check from inside the cluster, so it dialled
+# the old host, timed out, and never asked Let's Encrypt to validate. Meanwhile
+# the Ingress was correct, the challenge answered 200 from the public internet,
+# and the site served Traefik's self-signed default cert to every visitor.
+#
+# Rewriting to the Traefik Service removes the dependency on someone else's
+# cache: in-cluster lookups follow the Service, so nothing here breaks if the
+# VM's public address changes. Requests also stay inside the cluster rather than
+# leaving and hairpinning back through the edge proxy.
+#
+# k3s imports every *.override key into the default server block, where the
+# kubernetes plugin can resolve the rewritten name. Add a line per name as more
+# domains move onto the cluster; `exact` means www must be listed separately.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  kovospace.override: |
+    rewrite name exact kovo.space traefik.traefik.svc.cluster.local
+    rewrite name exact www.kovo.space traefik.traefik.svc.cluster.local

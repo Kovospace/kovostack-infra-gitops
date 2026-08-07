@@ -3,22 +3,9 @@ name: nsr
 image: nsr-frontend
 # imageTag lives in versions/nsr.yaml — written by CI, loaded after this file.
 # Setting it here too would create a second source of truth that always loses.
+
 containerPort: 3000
 host: nsr.matejkovac.sk
-
-# Staging while this app is still being brought up. Five production
-# certificates were issued for this host in a week — each namespace deletion
-# took nsr-tls with it and forced a fresh one — and Let's Encrypt allows 5 per
-# exact identifier set per 168h. Nothing can issue for this host until
-# 2026-08-07 09:33 UTC.
-#
-# Staging's limits are far higher, so iteration costs nothing. The browser will
-# warn (its root is deliberately untrusted) — that is expected, not a fault.
-#
-# Switch back once the app actually runs, and delete the secret so a real
-# certificate is requested:
-#   kubectl -n nsr delete secret nsr-tls
-clusterIssuer: letsencrypt-staging
 
 persistence:
   data:
@@ -33,11 +20,11 @@ persistence:
 env:
   DATABASE_URI: file:/app/data/nsr.db
   # PAYLOAD_SECRET: "" # Moved into vault
-  # NEXT_PUBLIC_SERVER_URL: https://neser.sk
+  NEXT_PUBLIC_SERVER_URL: https://nsr.matejkovac.sk
   # Extra origins (comma-separated) allowed to log into the admin / call the
   # API, in addition to NEXT_PUBLIC_SERVER_URL. Only needed when the site is
   # reached from more than one origin (e.g. bare IP for testing, or www).
-  # ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk
+  ALLOWED_ORIGINS: https://www.nsr.matejkovac.sk,https://nsr.matejkovac.sk
 
 resources:
   requests:

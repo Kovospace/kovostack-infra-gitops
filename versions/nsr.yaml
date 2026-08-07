@@ -1,8 +1,1 @@
----
-# WRITTEN BY CI — do not edit by hand except to roll back.
-#
-# The build pipeline in the nsr repository commits the tag it just pushed to
-# the registry. Keeping it in its own file means a deploy never touches
-# applications/nsr/values.yaml, so an automated commit can never conflict with
-# a configuration change someone is making at the same time.
-imageTag: sha-a4acb4c
+imageTag: sha-cc5ecc1

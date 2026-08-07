@@ -10,7 +10,7 @@ persistence:
   db:
     # SQLite database.
     size: 128Mi
-    mountPath: /app/db
+    mountPath: var/app/db
 
 env:
   RAILS_ENV: production

@@ -4,7 +4,6 @@ image: kovospace-frontend-old
 
 containerPort: 3000
 host: old.matejkovac.sk
-clusterIssuer: letsencrypt-staging
 
 persistence:
   db:

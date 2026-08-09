@@ -2,9 +2,16 @@
 name: paster-backend
 image: paster-backend
 
+# Nastavenie domény
 containerPort: 3000
 host: api.paster.cloud
 clusterIssuer: letsencrypt-staging # docasny certifikat
+
+# Pripojenie na postgres databázu
+externalServices:
+  postgres:
+    address: 172.17.0.1 # docker0 gateway — must be an IP, not a hostname
+    port: 5432
 
 env:
   # SECRET_KEY: ${SECRET_KEY} # presunuté do vault

@@ -1,0 +1,24 @@
+---
+name: paster-backend
+image: paster-backend
+
+containerPort: 3000
+host: api.paster.cloud
+clusterIssuer: letsencrypt-staging # docasny certifikat
+
+env:
+  # SECRET_KEY: ${SECRET_KEY} # presunuté do vault
+  # SPRING_DATASOURCE_USER: ${DB_USER} # presunuté do vault
+  # SPRING_DATASOURCE_PASS: ${DB_USER_PASSWORD} # presunuté do vault
+  SPRING_DATASOURCE_URL: jdbc:postgresql://paster-cloud-db:5432/paster
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+  SPRING_JPA_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+replicas: 0

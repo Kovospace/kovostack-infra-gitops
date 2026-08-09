@@ -1,0 +1,22 @@
+---
+name: paster-frontend
+image: paster-frontend
+
+containerPort: 3000
+host: paster.cloud
+clusterIssuer: letsencrypt-staging # docasny certifikat
+
+env:
+  # API_KEY: "" # presunuté do vault
+  API_VERSION: 2
+  BACKEND_API: https://api.paster.cloud
+  BACKEND_WEBSOCKET: wss://api.paster.cloud/websocket
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+replicas: 0

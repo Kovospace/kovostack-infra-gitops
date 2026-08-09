@@ -33,3 +33,8 @@ data:
   neser.override: |
     rewrite name exact neser.sk traefik.traefik.svc.cluster.local
     rewrite name exact www.neser.sk traefik.traefik.svc.cluster.local
+  paster.override: |
+    rewrite name exact paster.cloud traefik.traefik.svc.cluster.local
+    rewrite name exact www.paster.cloud traefik.traefik.svc.cluster.local
+    rewrite name exact api.paster.cloud traefik.traefik.svc.cluster.local
+    rewrite name exact www.api.paster.cloud traefik.traefik.svc.cluster.local

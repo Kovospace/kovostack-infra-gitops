@@ -13,6 +13,15 @@ externalServices:
     address: 172.17.0.1 # docker0 gateway — must be an IP, not a hostname
     port: 5432
 
+# Volumes
+persistence:
+  files:
+    size: 10Gi
+    mountPath: /app/uploads/files
+  temp:
+    size: 10Gi
+    mountPath: /app/uploads/temp
+
 env:
   # SECRET_KEY: ${SECRET_KEY} # presunuté do vault
   # SPRING_DATASOURCE_USER: ${DB_USER} # presunuté do vault
@@ -27,4 +36,3 @@ resources:
     memory: 128Mi
   limits:
     memory: 512Mi
-

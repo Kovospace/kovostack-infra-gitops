@@ -2,7 +2,7 @@
 name: paster-frontend
 image: paster-frontend
 
-containerPort: 3000
+containerPort: 4204
 host: paster.cloud
 
 env:

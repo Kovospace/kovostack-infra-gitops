@@ -4,7 +4,6 @@ image: paster-frontend
 
 containerPort: 3000
 host: paster.cloud
-clusterIssuer: letsencrypt-staging # docasny certifikat
 
 env:
   # API_KEY: "" # presunuté do vault

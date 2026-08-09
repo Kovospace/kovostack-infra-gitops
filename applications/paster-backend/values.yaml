@@ -5,7 +5,6 @@ image: paster-backend
 # Nastavenie domény
 containerPort: 3000
 host: api.paster.cloud
-clusterIssuer: letsencrypt-staging # docasny certifikat
 
 # Pripojenie na postgres databázu
 externalServices:

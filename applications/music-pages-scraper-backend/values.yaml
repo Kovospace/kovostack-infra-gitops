@@ -1,0 +1,30 @@
+---
+name: music-pages-scraper-backend
+image: music-pages-scraper-backend
+
+# Nastavenie domény
+containerPort: 3000
+host: music-pages-scraper.matejkovac.sk
+
+# Pripojenie na postgres databázu
+externalServices:
+  postgres:
+    address: 172.17.0.1 # docker0 gateway — must be an IP, not a hostname
+    port: 5432
+
+# Volumes
+# nie sú
+
+env:
+  # SPRING_DATASOURCE_USER: ${DB_USER} # presunuté do vault
+  # SPRING_DATASOURCE_PASS: ${DB_USER_PASSWORD} # presunuté do vault
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/scraper
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+  SPRING_JPA_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

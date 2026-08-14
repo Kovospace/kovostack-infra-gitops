@@ -3,7 +3,7 @@ name: music-pages-scraper-backend
 image: music-pages-scraper-backend
 
 # Nastavenie domény
-containerPort: 3000
+containerPort: 4000
 host: music-pages-scraper.matejkovac.sk
 
 # Pripojenie na postgres databázu

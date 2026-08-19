@@ -21,7 +21,7 @@ spec:
     # Upgrading is now a per-app decision: bump this, watch it, then move the
     # next app. A chart change no longer reaches everything at once.
     - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
-      targetRevision: chart-app-1.2.2
+      targetRevision: chart-app-1.3.0
       path: charts/app
       helm:
         # Order matters — later files win. versions/ is written by CI and

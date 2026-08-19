@@ -51,12 +51,20 @@ spec:
   destinations:
     - server: https://kubernetes.default.svc
       namespace: '*'
-  # Namespace only. charts/app renders one per app, so this cannot be empty —
-  # but nothing here has any business creating a CRD, ClusterRole or
-  # StorageClass, and now it cannot.
+  # Two kinds, both rendered by charts/app, so this cannot be empty — but
+  # nothing here has any business creating a CRD, ClusterRole or StorageClass,
+  # and now it cannot.
+  #
+  # ClusterSecretStore is cluster-scoped only so it can read the Infisical
+  # machine identity out of the external-secrets namespace; each app renders one
+  # scoped to its own folder. A namespaced SecretStore may only reference a
+  # Secret in its own namespace, which would mean copying that credential into
+  # every app namespace to gain nothing.
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
+    - group: external-secrets.io
+      kind: ClusterSecretStore
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'

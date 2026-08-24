@@ -14,7 +14,7 @@ spec:
   sources:
 
     - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
-      targetRevision: chart-app-1.4.0
+      targetRevision: chart-app-1.4.1
       path: charts/app
       helm:
         valueFiles:

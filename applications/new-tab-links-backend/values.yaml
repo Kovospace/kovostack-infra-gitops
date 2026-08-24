@@ -1,0 +1,57 @@
+---
+name: new-tab-links-backend
+image: new-tab-links-backend
+
+# Nastavenie domény
+containerPort: 4000
+host: api.new-tab-links.matejkovac.sk
+
+# Pripojenie na postgres databázu
+externalServices:
+  postgres:
+    address: 172.17.0.1 # docker0 gateway — must be an IP, not a hostname
+    port: 5432
+
+# Volumes
+# nie sú
+
+env:
+
+  ### AUTH settings
+  # NEWTABLINKS_AUTH_JWT_SIGNING_SECRET: ${NEWTABLINKS_AUTH_JWT_SIGNING_SECRET} # presunuté do vault
+  # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID}
+  # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET}
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE: openid,email,profile
+  NEWTABLINKS_AUTH_JWT_ISSUER: https://api.new-tab-links.matejkovac.sk
+
+  ### Database settings
+  # SPRING_DATASOURCE_USER: ${DB_USER} # presunuté do vault
+  # SPRING_DATASOURCE_PASS: ${DB_USER_PASSWORD} # presunuté do vault
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/newtablinks
+  SPRING_DATASOURCE_DRIVER._CLASS_NAME: org.postgresql.Driver
+  SPRING_JPA_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+
+  ### Mail sender settings
+  NEWTABLINKS_MAIL_ENABLED: false
+  NEWTABLINKS_MAIL_FROM_ADDRESS: ""
+  NEWTABLINKS_MAIL_FROM_NAME: ""
+  SPRING_MAIL_HOST: ""
+  SPRING_MAIL_PORT: ""
+  SPRING_MAIL_USERNAME: ""
+  SPRING_MAIL_PASSWORD: ""
+  SPRING_MAIL_SMTP_AUTH: true
+  SPRING_MAIL_SMTP_STARTTLS: true
+
+  ### Frontend redirects settings
+  NEWTABLINKS_WEB_BASE_URL: ""
+  NEWTABLINKS_WEB_ACTIVATION_PATH: ""
+  NEWTABLINKS_WEB_OAUTH_CALLBACK_PATH: ""
+  NEWTABLINKS_WEB_PASSWORD_RESET_PATH: ""
+  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: ""
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

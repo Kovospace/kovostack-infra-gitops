@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: music-pages-scraper-backend
+  name: new-tab-links-backend
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -18,8 +18,8 @@ spec:
       path: charts/app
       helm:
         valueFiles:
-          - $values/applications/music-pages-scraper-backend/values.yaml
-          - $values/versions/music-pages-scraper-backend.yaml
+          - $values/applications/new-tab-links-backend/values.yaml
+          - $values/versions/new-tab-links-backend.yaml
 
     - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
       targetRevision: main
@@ -27,7 +27,7 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: music-pages-scraper-backend
+    namespace: new-tab-links-backend
 
   syncPolicy:
     automated:

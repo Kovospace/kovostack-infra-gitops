@@ -30,6 +30,11 @@ env:
   SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/newtablinks
   SPRING_DATASOURCE_DRIVER._CLASS_NAME: org.postgresql.Driver
   SPRING_JPA_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+  FLYWAY_URL: jdbc:postgresql://postgres:5432/newtablinks
+  FLYWAY_CONNECT_RETRIES: 5
+  FLYWAY_CONNECT_RETRIES_INTERVAL: 5
+  # FLYWAY_USER
+  # FLYWAY_PASSWORD
 
   ### Mail sender settings
   NEWTABLINKS_MAIL_ENABLED: true

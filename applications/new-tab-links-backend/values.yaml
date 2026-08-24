@@ -1,6 +1,10 @@
 ---
 name: new-tab-links-backend
 image: new-tab-links-backend
+initContainers:
+  - name: migrations
+    image: new-tab-links-migrations
+
 
 # Nastavenie domény
 containerPort: 4000

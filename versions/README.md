@@ -1,7 +1,8 @@
 # versions
 
-One file per app, containing **only** the deployed image tag. Written by build
-pipelines, not by hand.
+Image tags, and nothing else. Written by build pipelines, not by hand. One file
+per app, plus a second one for any init container image that is released on its
+own cadence.
 
 ```yaml
 # versions/nsr.yaml
@@ -21,8 +22,60 @@ the same file. An automated commit landing on `applications/nsr/values.yaml`
 would sooner or later collide with an edit in flight, and the resolution would
 be someone's config change silently reverted by a pipeline.
 
-`imageTag` therefore lives **only** here. Setting it in the app's values file as
-well creates two sources of truth where the quieter one always wins.
+`imageTag` therefore lives **only** here, and so does `initImageTags` below.
+Setting either in the app's values file as well creates two sources of truth
+where the quieter one always wins.
+
+## Init container images
+
+A step that runs before the app usually ships in the app's own image and needs
+nothing here: an init container with no tag of its own rides `imageTag`, because
+the same pipeline built both, and one bump moves the pair.
+
+When that is not true, it gets a second file. `new-tab-links-migrations` is its
+own repository publishing a schema version on its own cadence, so pinning it to
+the backend's tag would name a version that does not exist in its registry:
+
+```yaml
+# versions/new-tab-links-backend-init.yaml
+initImageTags:
+  migrations: "1.2.3"
+```
+
+```yaml
+valueFiles:
+  - $values/applications/new-tab-links-backend/values.yaml    # config, humans
+  - $values/versions/new-tab-links-backend.yaml               # app tag, CI
+  - $values/versions/new-tab-links-backend-init.yaml          # init tags, CI
+```
+
+A file of its own, rather than another key in the app's, for exactly the reason
+the app's tag is not in `applications/`: two pipelines writing one file race,
+and the loser's push is rejected.
+
+It is a **map**, keyed by the init container's name. The list stays where humans
+edit it:
+
+```yaml
+# applications/new-tab-links-backend/values.yaml
+initContainers:
+  - name: migrations
+    image: new-tab-links-migrations
+```
+
+The map is what makes the split possible at all. Helm merges values files as
+maps but replaces **lists** wholesale, so a file setting `initContainers` would
+have to restate every entry — image, command, resources — leaving a pipeline to
+rewrite configuration it knows nothing about. `initImageTags` is also a
+different key from `imageTag`, so the two version files merge instead of the
+second overwriting the first.
+
+The key is the name the chart resolves for that container: the entry's `name`,
+or `init-<image>` when it has none. A key matching no container is **not** an
+error — the tag is ignored and the container falls back to the app's — so have
+the pipeline write the key rather than leave it to be derived.
+
+Quote the value. An unquoted `1.2` is a YAML float, not a tag.
 
 ## Deploying from another repository's pipeline
 
@@ -39,6 +92,23 @@ The app's build job commits the new tag here. In GitHub Actions:
 
 ArgoCD sees the commit and syncs. Nothing else is needed — that push *is* the
 deployment.
+
+An init container's pipeline writes its own file the same way. Note `git add`:
+`commit -a` stages modifications, and the first run creates the file.
+
+```yaml
+- name: Pin the migration image
+  run: |
+    git clone --depth 1 git@github.com:Kovospace/kovostack-infra-gitops.git gitops
+    cd gitops
+    printf 'initImageTags:\n  %s: "%s"\n' "$CONTAINER" "$VERSION" \
+      > versions/${APP}-init.yaml
+    git add versions/${APP}-init.yaml
+    git commit -m "pin ${APP} ${CONTAINER} ${VERSION}" && git push
+```
+
+That makes the concurrency note below a real case rather than a hypothetical
+one: two pipelines now push here for a single app.
 
 ### Credentials
 

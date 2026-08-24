@@ -14,12 +14,13 @@ spec:
   sources:
 
     - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
-      targetRevision: chart-app-1.3.0
+      targetRevision: chart-app-1.4.0
       path: charts/app
       helm:
         valueFiles:
           - $values/applications/new-tab-links-backend/values.yaml
           - $values/versions/new-tab-links-backend.yaml
+          - $values/versions/new-tab-links-backend-init.yaml
 
     - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
       targetRevision: main

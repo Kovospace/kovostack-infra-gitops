@@ -53,19 +53,58 @@ is **`chart-<chart_name>-<semver>`**.
 
 ## Adding an app
 
-1. `cp -r whoami myapp && mv whoami.yaml myapp.yaml`
-2. Replace `whoami` with `myapp` in both files (Application `metadata.name`,
-   the `$values` path, `destination.namespace`, and `name` in the values file).
-3. Create the Infisical folder `/myapp` and put the app's secrets in it — they
-   arrive as env vars, no git change needed.
-4. Point DNS at the VM and commit.
-
-`charts/app/README.md` covers what the chart renders and which values switch
-parts of it off. Render before pushing:
+Run `/new-app` in Claude Code and answer five questions — name, Postgres,
+ingress host, external secrets, container port. It calls
+`.claude/scripts/new-app.sh`, which can also be run directly:
 
 ```bash
-helm template myapp charts/app -f applications/myapp/values.yaml
+.claude/scripts/new-app.sh --name myapp --host myapp.matejkovac.sk --port 8080 \
+  --postgres myapp_db          # or --no-postgres, --no-secrets, --dry-run
 ```
+
+It writes three files and stops there — no commit, no push, no cluster access:
+
+| File | What it is |
+|---|---|
+| `applications/myapp.yaml` | the Application, pinned to the newest `chart-app-*` already in use here |
+| `applications/myapp/values.yaml` | the app's config |
+| `versions/myapp.yaml` | `imageTag: change_me` — written by CI from then on |
+
+### The steps it cannot do
+
+The app will not start until these are done, so do them **before** pushing to
+`main` — that push is the deployment.
+
+1. **Infisical folder `/myapp`** — put the app's secrets in it. They arrive as
+   env vars via `myapp-secrets`; adding one later needs no commit. Skipped if
+   the app was created with `--no-secrets`.
+2. **The database**, if the app uses Postgres. Postgres runs in **Docker on the
+   VM, not in the cluster** — the chart only renders a selector-less Service
+   pointing at the docker0 gateway, so the app can reach it as `postgres:5432`.
+   Create the database and a user with rights on it, and put that user and
+   password in Infisical `/myapp`:
+
+   ```bash
+   createdb -h <vm> -U postgres myapp_db
+   ```
+3. **DNS** for the host, pointing at the VM. The certificate is issued by an
+   HTTP-01 challenge, so the record has to resolve *before* the first sync —
+   otherwise the challenge fails and Let's Encrypt rate-limits at 5 failures per
+   hour. Use `clusterIssuer: letsencrypt-staging` while testing.
+4. **Build and push the image** to `registry.matejkovac.sk/apps/myapp`, then put
+   its tag in `versions/myapp.yaml`. `versions/README.md` has the pipeline that
+   writes that file on every deploy.
+5. **Render it** before pushing:
+
+   ```bash
+   helm template myapp ../kovostack-helm-charts/charts/app \
+     -f applications/myapp/values.yaml -f versions/myapp.yaml
+   ```
+
+Anything beyond those five answers — volumes, init containers, `wwwAlias`,
+resources — is a normal edit to `applications/myapp/values.yaml` afterwards.
+`charts/app/values.yaml` in the charts repo documents every key and which ones
+switch parts of the chart off.
 
 ## When the chart does not fit
 

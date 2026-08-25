@@ -12,7 +12,8 @@ rediscover conventions that are written down.
 
 | Working on | Read |
 |---|---|
-| a workload: add, change, pin a chart version | `applications/README.md` |
+| adding a **new** app | run `/new-app` — never hand-write the three files |
+| a workload: change, pin a chart version | `applications/README.md` |
 | image tags, CI deploys, init-container tags | `versions/README.md` |
 | a cluster component (argocd, traefik, cert-manager, external-secrets) | `infrastructure/README.md` |
 | what runs where, sync waves, AppProjects | `clusters/README.md` |
@@ -71,8 +72,12 @@ not render or verify something, say so plainly — never report a check you did 
   cluster. The commit is the deploy; anything applied by hand gets reverted by
   `selfHeal` and leaves the cluster disagreeing with git.
 
-## Agent
+## Agent and skill
 
-`devops-engineer` (`.claude/agents/devops-engineer.md`) owns changes here,
-impact analysis for a backend service or cluster component, and CI/CD pipeline
-guidance. Delegate that work rather than re-deriving it.
+- **`devops-engineer`** (`.claude/agents/devops-engineer.md`) owns changes here,
+  impact analysis for a backend service or cluster component, and CI/CD pipeline
+  guidance. Delegate that work rather than re-deriving it.
+- **`/new-app`** (`.claude/skills/new-app/`) scaffolds a new app from five
+  answers via `.claude/scripts/new-app.sh`. The script holds the conventions —
+  writing the Application, values and versions files by hand is a bug, not a
+  shortcut.

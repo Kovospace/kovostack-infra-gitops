@@ -1,3 +1,1 @@
-# Written by the app's build pipeline from here on — see versions/README.md.
-# `change_me` is a placeholder: the first deploy replaces it with a real tag.
-imageTag: change_me
+imageTag: sha-e99e95b

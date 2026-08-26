@@ -1,0 +1,37 @@
+---
+name: new-tab-links-frontend
+image: new-tab-links-frontend
+# imageTag lives in versions/new-tab-links-frontend.yaml — written by CI, loaded after this
+# file. Setting it here too would create a second source of truth that always
+# loses.
+
+# Nastavenie domény
+# The image serves the built site with nginx on 8080 — 5173 is only the dev server.
+containerPort: 8080
+host: new-tab-links.matejkovac.sk
+
+# Probes render only when this is set; the image answers /healthz.
+healthPath: /healthz
+
+# Volumes
+# nie sú
+
+# The bundle is static JS, so the entrypoint writes these into config.json at
+# start-up and the app fetches it before booting. Every value here is served to
+# the visitor's browser in plain text — nothing sensitive may go in.
+env:
+  # Resolved by the visitor's browser, so it must be the public address —
+  # a cluster-internal service name would not work.
+  NEWTABLINKS_BACKEND_BASE_URL: https://api.new-tab-links.matejkovac.sk
+  NEWTABLINKS_WEB_CLIENT_DEVICE_NAME: "NewTabLinks website"
+  # Empty shows "not published yet" instead of a dead link — fill in once the
+  # extension is listed.
+  NEWTABLINKS_CHROME_WEB_STORE_URL: ""
+  NEWTABLINKS_SELF_HOSTED_CRX_PATH: /downloads/newtablinks.crx
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

@@ -54,7 +54,7 @@ env:
   NEWTABLINKS_MAIL_FROM_ADDRESS: "info@newtablinks.app"
   NEWTABLINKS_MAIL_FROM_NAME: "NewTabLinks Robot"
   SPRING_MAIL_HOST: smtp-relay.brevo.com
-  SPRING_MAIL_PORT: 587
+  SPRING_MAIL_PORT: 2525
   # SPRING_MAIL_USERNAME: "" # presunuté do vault
   # SPRING_MAIL_PASSWORD: "" # presunuté do vault
   SPRING_MAIL_SMTP_AUTH: true

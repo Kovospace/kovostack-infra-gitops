@@ -7,8 +7,15 @@ initContainers:
 
 
 # Nastavenie domény
-containerPort: 4000
+# Spring Boot listens on 8080 (`server.port` defaults to 8080, chart default is
+# the same). The Service and both probes target this port, so it has to match
+# what the process actually binds — 4000 pointed them at nothing.
+containerPort: 8080
 host: api.new-tab-links.matejkovac.sk
+
+# Probes render only when this is set. Actuator exposes health,info by default
+# and has probes enabled, so /actuator/health answers from start-up.
+healthPath: /actuator/health
 
 # Pripojenie na postgres databázu
 externalServices:
@@ -22,23 +29,25 @@ externalServices:
 env:
 
   ### AUTH settings
-  # NEWTABLINKS_AUTH_JWT_SIGNING_SECRET: ${NEWTABLINKS_AUTH_JWT_SIGNING_SECRET} # presunuté do vault
-  # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID}
-  # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET}
+  # NEWTABLINKS_AUTH_JWT_SIGNING_SECRET: ${NEWTABLINKS_AUTH_JWT_SIGNING_SECRET} # presunuté do vault, min. 32 bajtov
+  # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${...} # presunuté do vault
+  # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${...} # presunuté do vault
   SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE: openid,email,profile
   NEWTABLINKS_AUTH_JWT_ISSUER: https://api.new-tab-links.matejkovac.sk
 
   ### Database settings
-  # SPRING_DATASOURCE_USER: ${DB_USER} # presunuté do vault
-  # SPRING_DATASOURCE_PASS: ${DB_USER_PASSWORD} # presunuté do vault
+  # SPRING_DATASOURCE_USERNAME: ${DB_USER} # presunuté do vault
+  # SPRING_DATASOURCE_PASSWORD: ${DB_USER_PASSWORD} # presunuté do vault
   SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/newtablinks
-  SPRING_DATASOURCE_DRIVER._CLASS_NAME: org.postgresql.Driver
-  SPRING_JPA_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+  # Schéma patrí migračnému init containeru (Flyway); Hibernate ju smie iba overiť.
+  # Bez tejto premennej beží aplikácia s ddl-auto=update a ticho prepisuje
+  # to, čo Flyway namigroval.
+  SPRING_JPA_HIBERNATE_DDL_AUTO: validate
   FLYWAY_URL: jdbc:postgresql://postgres:5432/newtablinks
   FLYWAY_CONNECT_RETRIES: 5
   FLYWAY_CONNECT_RETRIES_INTERVAL: 5
-  # FLYWAY_USER
-  # FLYWAY_PASSWORD
+  # FLYWAY_USER a FLYWAY_PASSWORD sú vo vaulte — init container dedí ten istý
+  # synced Secret cez envFrom. Bez nich Flyway skončí chybou a pod nenaštartuje.
 
   ### Mail sender settings
   NEWTABLINKS_MAIL_ENABLED: true
@@ -52,11 +61,25 @@ env:
   SPRING_MAIL_SMTP_STARTTLS: true
 
   ### Frontend redirects settings
-  NEWTABLINKS_WEB_BASE_URL: ""
-  NEWTABLINKS_WEB_ACTIVATION_PATH: ""
-  NEWTABLINKS_WEB_OAUTH_CALLBACK_PATH: ""
-  NEWTABLINKS_WEB_PASSWORD_RESET_PATH: ""
-  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: ""
+  # Základ odkazov v aktivačnom a reset-password maile. Prázdna hodnota tu
+  # prebije default z application.properties a maily vedú nikam.
+  NEWTABLINKS_WEB_BASE_URL: https://new-tab-links.matejkovac.sk
+  # Cesty sedia s routami Angular stránky (application-route-paths.ts).
+  NEWTABLINKS_WEB_ACTIVATION_PATH: /activate
+  NEWTABLINKS_WEB_OAUTH_CALLBACK_PATH: /auth/callback
+  NEWTABLINKS_WEB_PASSWORD_RESET_PATH: /reset-password
+  # Zdieľaný, NIE tajný kľúč — púšťa web na GET /api/v1/auth/username-existence.
+  # Kompiluje sa do verejného JS bundlu stránky, takže do vaultu nepatrí; tá istá
+  # hodnota je v applications/new-tab-links-frontend/values.yaml. Nemá default a
+  # prázdna hodnota znamená "zamietni všetko".
+  FRONTEND_API_KEY: 6956ae2a5852eda82c8c81823ecc1cf5d267b14e062f264b
+
+  ### CORS a websocket
+  # Prehliadačové originy. Web aj rozšírenie volajú REST API...
+  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://new-tab-links.matejkovac.sk,chrome-extension://*
+  # ...a web si na to isté API otvára aj STOMP websocket, takže default
+  # (iba chrome-extension://*) mu nestačí.
+  NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: https://new-tab-links.matejkovac.sk,chrome-extension://*
 
 resources:
   requests:

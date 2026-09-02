@@ -24,6 +24,11 @@ env:
   # a cluster-internal service name would not work.
   NEWTABLINKS_BACKEND_BASE_URL: https://api.new-tab-links.matejkovac.sk
   NEWTABLINKS_WEB_CLIENT_DEVICE_NAME: "NewTabLinks website"
+  # Shared, non-secret key that admits the website to the backend's
+  # username-existence endpoint. It ships inside the public JS bundle, so it
+  # is not a secret and does not belong in Infisical. Must stay identical to
+  # FRONTEND_API_KEY in applications/new-tab-links-backend/values.yaml.
+  NEWTABLINKS_FRONTEND_API_KEY: 6956ae2a5852eda82c8c81823ecc1cf5d267b14e062f264b
   # Empty shows "not published yet" instead of a dead link — fill in once the
   # extension is listed.
   NEWTABLINKS_CHROME_WEB_STORE_URL: ""

@@ -72,7 +72,7 @@ env:
   # Kompiluje sa do verejného JS bundlu stránky, takže do vaultu nepatrí; tá istá
   # hodnota je v applications/new-tab-links-frontend/values.yaml. Nemá default a
   # prázdna hodnota znamená "zamietni všetko".
-  FRONTEND_API_KEY: 6956ae2a5852eda82c8c81823ecc1cf5d267b14e062f264b
+  # FRONTEND_API_KEY:
 
   ### CORS a websocket
   # Prehliadačové originy. Web aj rozšírenie volajú REST API...

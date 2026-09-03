@@ -58,7 +58,7 @@ env:
   # Na noreply@ netreba schránku — Brevo overuje doménu, nie prijímajúcu schránku.
   # Dočasné bývanie: keď rozšírenie vyjde v Chrome Web Store a appka dostane
   # vlastnú doménu, treba ju overiť v Brevo a túto hodnotu prepísať.
-  NEWTABLINKS_MAIL_FROM_ADDRESS: "noreply@matejkovac.sk"
+  NEWTABLINKS_MAIL_FROM_ADDRESS: "noreply@mail.new-tab-links.matejkovac.sk"
   # Zobrazované meno je voľný text — Brevo ho voči registrovanému odosielateľovi
   # (NewTabLinks) nekontroluje, takže je to čisto kozmetika.
   NEWTABLINKS_MAIL_FROM_NAME: "NewTabLinks Robot"

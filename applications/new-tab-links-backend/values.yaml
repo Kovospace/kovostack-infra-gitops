@@ -83,6 +83,29 @@ env:
   # prázdna hodnota znamená "zamietni všetko".
   # FRONTEND_API_KEY:
 
+  ### Admin surface
+  # Operátorské prihlásenie na /api/v1/admin — číta, mení a maže ľubovoľný účet
+  # vrátane všetkých jeho pracovných plôch, skupín a odkazov. Nie je to účet:
+  # žiadny riadok v databáze, žiadna registrácia, žiadny reset, žiadny druhý
+  # faktor. Jedno heslo je celá stena medzi internetom a zmazaním hocičoho.
+  #
+  # ADMIN_USERNAME a ADMIN_PASSWORD sú preto vo vaulte — sem v otvorenej podobe
+  # nepatria. Prázdna hodnota ktorejkoľvek z nich CELÝ admin vypne (každé
+  # prihlásenie odmietne), čo je bezpečný default: nasadenie, ktoré ich zabudne,
+  # príde o nástroj na opravy, nie o ochranu.
+  # ADMIN_USERNAME: ${ADMIN_USERNAME} # presunuté do vault
+  # ADMIN_PASSWORD: ${ADMIN_PASSWORD} # presunuté do vault, dlhé a náhodné
+  #
+  # Zamykanie po neúspešných pokusoch. Uvedené explicitne, hoci sa zhodujú s
+  # defaultmi aplikácie: je to bezpečnostná politika a má byť čitateľná priamo
+  # z nasadenia. POZOR — počítadlo žije v pamäti procesu, takže je per replika;
+  # dve repliky znamenajú dvojnásobok pokusov, kým sa ktorákoľvek zamkne.
+  ADMIN_USER_MAX_CONSECUTIVE_ATTEMPTS: 5
+  ADMIN_USER_BAD_ATTEMPTS_LOCK_TIME: PT5M
+  # Životnosť admin tokenu. Nemá obnovovací token — po vypršaní sa operátor
+  # prihlási znova, čo je zámer. Default aplikácie je PT30M.
+  # ADMIN_TOKEN_LIFETIME: PT30M
+
   ### CORS a websocket
   # Prehliadačové originy. Web aj rozšírenie volajú REST API...
   NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://new-tab-links.matejkovac.sk,chrome-extension://*

@@ -20,6 +20,7 @@ rediscover conventions that are written down.
 | namespaces | `namespaces/README.md` |
 | cluster bring-up, deploy key, Infisical identity | `bootstrap/README.md` |
 | the `app` chart's values and rendering switches | `../kovostack-helm-charts/charts/app/README.md` |
+| developing locally against the cluster (mirrord) | `docs/mirrord.md` |
 | work deliberately deferred (don't re-propose it) | `TODOS.md` |
 
 Layout: `bootstrap/` (the one manual apply) → `clusters/production/` (an
@@ -81,3 +82,8 @@ not render or verify something, say so plainly — never report a check you did 
   answers via `.claude/scripts/new-app.sh`. The script holds the conventions —
   writing the Application, values and versions files by hand is a bug, not a
   shortcut.
+
+The three repositories whose apps run here each have their own agent —
+`backend-developer`, `frontend-developer` and `extension-developer`. Ask them what
+a value means to the application instead of inferring it from YAML; they read
+this repo but never write to it.

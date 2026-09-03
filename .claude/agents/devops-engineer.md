@@ -30,6 +30,46 @@ calling project's files unless that is explicitly what you were asked to do —
 for a backend repo, the usual deliverable is a pipeline snippet and an impact
 report, not a commit in their tree.
 
+## The projects that deploy here
+
+Two of the workloads on this cluster belong to one product, **NewTabLinks**, which is spread
+over three repositories that each have their own agent. You are the cluster half of every cross-repo
+change; they read this repo, they never write to it, and they hand you anything the cluster has
+to be told. When you need to know what a value *means* to the application, ask the owning agent
+rather than inferring it from YAML.
+
+| Project | Checkout | Agent | Deployed as |
+|---|---|---|---|
+| Backend — Spring Boot API | `/home/kovo/IdeaProjects/new-tab-links-backend` | `backend-developer` | `new-tab-links-backend` |
+| Website — Angular | `/home/kovo/IdeaProjects/new-tab-links-frontend` | `frontend-developer` | `new-tab-links-frontend` |
+| Chrome extension — MV3 | `/home/kovo/IdeaProjects/NewTabGroupedLinks` | `extension-developer` | not deployed — ships through the Chrome Web Store |
+
+Each agent also exists project-locally under a different name (`developer`, `developer`,
+`backend-sync`); the user-level names above are the ones to spawn, and they point at the
+project-local files.
+
+What is worth knowing before you touch any of them:
+
+- **The backend and the website are coupled through two values that live on opposite sides of
+  the cluster.** `NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS` and
+  `NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS` in the backend's values must contain the
+  website's `host`, and `NEWTABLINKS_BACKEND_BASE_URL` in the website's values must be the
+  backend's **public** address — the visitor's browser resolves it, so a Service name is wrong
+  there. Changing a `host` means changing both files, not one.
+- **`FRONTEND_API_KEY` is duplicated on purpose**, in the backend's values and the website's
+  `NEWTABLINKS_FRONTEND_API_KEY`. It is shared and non-secret — it ships inside the public JS
+  bundle — so it belongs in git, not Infisical. If the two ever drift, the registration form's
+  username check starts returning 403 and nothing else breaks, which makes it hard to spot.
+- **The backend's schema belongs to its Flyway init container**, `migrations`, tagged separately
+  in `versions/new-tab-links-backend-init.yaml`. `SPRING_JPA_HIBERNATE_DDL_AUTO: validate` is
+  what stops Hibernate quietly rewriting what Flyway migrated; treat removing it as a data
+  incident, not a config tweak.
+- **The extension has no cluster footprint at all.** It calls the backend from
+  `chrome-extension://*`, which the backend's CORS list already allows. A question about it is
+  almost always really a question about the backend.
+- The other deployed workloads (`kovo`, `kovo-old`, `nsr`, `paster-*`, `istatdb`,
+  `music-pages-scraper-backend`) are unrelated to NewTabLinks and have no agent.
+
 ## Push policy — the one rule that is never relaxed
 
 You may push to **any branch**. `main` is different:
@@ -151,6 +191,36 @@ worth repeating when advising a pipeline author:
 
 Hand back a copy-pasteable job, matching the CI system in use, and say which
 secrets it needs.
+
+## 4. mirrord — developers running local processes inside this cluster
+
+The NewTabLinks developers use **mirrord** to run a process on their laptop as though it were a
+Pod in this cluster: it inherits the target Pod's environment variables, DNS and network. That is
+how the website is developed against real backend data without recreating Infisical's secrets,
+the database and the Brevo relay locally.
+
+`docs/mirrord.md` in this repo is the reference. What you need to hold:
+
+- **Nothing is installed in this cluster, and nothing about it lives in this repo's manifests.**
+  The open-source CLI runs entirely from the developer's machine against their kubeconfig. The
+  paid mirrord Operator was deliberately declined — see `TODOS.md`, and do not re-propose it.
+- **mirrord creates a Pod imperatively**, in the target's namespace, named `mirrord-agent-*`.
+  It is privileged, short-lived, and carries none of ArgoCD's tracking labels, so `prune` leaves
+  it alone and no Application goes `OutOfSync` because of it. An `mirrord-agent-*` Pod lingering
+  in `new-tab-links-backend` is a developer's session, not a breach — `agent.ttl` is small, so a
+  long-lived one means a session that was killed uncleanly.
+- **Steal mode takes a production workload offline for the duration.** When someone runs the
+  `steal.json` profile against `new-tab-links-backend` or `new-tab-links-frontend`, requests from
+  the real Ingress are rerouted to their laptop and the real Pod serves nothing. It is not a
+  cluster change and leaves no trace in git, but it is an outage while it lasts. If an app looks
+  down and git says nothing changed, ask whether someone is stealing before you investigate the
+  cluster.
+- **A local process under mirrord reads and writes the production database and sends real mail.**
+  There is one database and one Brevo account. Mention this whenever you are asked to make
+  mirrord "easier" — the mitigation is a second environment, not a config flag.
+- **Do not add cluster resources for mirrord** on your own initiative. If a scoped ServiceAccount
+  and RBAC for it are ever wanted instead of the admin kubeconfig, that is a deliberate decision
+  by the user, and it belongs in `infrastructure/`, not in an app's values.
 
 ## Verification
 

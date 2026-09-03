@@ -150,3 +150,28 @@ decryption key that must be backed up outside the cluster.
 base64-encoded, not encrypted, in etcd. `k3s server --secrets-encryption`
 protects this credential, the repo deploy key and every synced app secret at
 once, for far less effort than any option here.
+### mirrord Operator — declined, use the open-source CLI
+
+Developers run local processes inside this cluster with **mirrord**, set up as described in
+`docs/mirrord.md`. That is the free, open-source CLI: it runs entirely from the developer's
+machine against their kubeconfig and **installs nothing in the cluster**, which is why this
+repository contains no mirrord manifests.
+
+The **mirrord Operator** (mirrord for Teams, **$40/seat/month**, free trial at
+app.metalbear.com) was evaluated and deliberately not installed. What it would add:
+
+- concurrent sessions against one target, with HTTP header filtering so two developers can steal
+  different requests from the same Pod;
+- RBAC and policies, so a user no longer needs permission to create privileged Pods — only the
+  Operator does;
+- queue splitting (SQS, Kafka, RabbitMQ, …) and database branching;
+- session management and audit.
+
+Every one of those is a *team* feature. One developer on their own cluster, already holding the
+k3s admin kubeconfig, gains nothing from any of them and pays a seat fee for it.
+
+**Do not re-propose this** unless something concrete changes: a second person needs cluster
+access without being cluster admin, or two sessions need the same Pod at once. It would install
+as an umbrella chart in `infrastructure/mirrord-operator/` with its own namespace and a
+sync-wave alongside the other cluster components, plus a license key — which, being a secret,
+would go in Infisical and reach the namespace through external-secrets rather than into git.

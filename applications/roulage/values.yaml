@@ -1,0 +1,35 @@
+---
+name: roulage
+image: roulage-frontend
+# imageTag lives in versions/nsr.yaml — written by CI, loaded after this file.
+# Setting it here too would create a second source of truth that always loses.
+
+containerPort: 3000
+host: roulage.matejkovac.sk
+
+persistence:
+  data:
+    # SQLite database.
+    size: 128Mi
+    mountPath: /app/data
+  uploads:
+    # Uploaded flyers and DJ sets. Inside Next.js' public/ tree, so these are
+    size: 1Gi
+    mountPath: /app/public/media
+
+env:
+  DATABASE_URI: file:/app/data/roulage.db
+  # PAYLOAD_SECRET: "" # Moved into vault
+  NEXT_PUBLIC_SERVER_URL: https://roulage.sk
+  # Extra origins (comma-separated) allowed to log into the admin / call the
+  # API, in addition to NEXT_PUBLIC_SERVER_URL. Only needed when the site is
+  # reached from more than one origin (e.g. bare IP for testing, or www).
+  ALLOWED_ORIGINS: https://www.roulage.sk,https://roulage.sk
+  # NEXT_PUBLIC_GOOGLE_MAPS_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_KEY:-} # moved into vault
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

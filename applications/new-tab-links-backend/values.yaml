@@ -11,7 +11,7 @@ initContainers:
 # the same). The Service and both probes target this port, so it has to match
 # what the process actually binds — 4000 pointed them at nothing.
 containerPort: 8080
-host: api.new-tab-links.matejkovac.sk
+host: api.tabilinks.app
 
 # Probes render only when this is set. Actuator exposes health,info by default
 # and has probes enabled, so /actuator/health answers from start-up.
@@ -33,7 +33,7 @@ env:
   # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${...} # presunuté do vault
   # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${...} # presunuté do vault
   SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE: openid,email,profile
-  NEWTABLINKS_AUTH_JWT_ISSUER: https://api.new-tab-links.matejkovac.sk
+  NEWTABLINKS_AUTH_JWT_ISSUER: https://api.tabilinks.app
 
   ### Database settings
   # SPRING_DATASOURCE_USERNAME: ${DB_USER} # presunuté do vault
@@ -72,7 +72,7 @@ env:
   ### Frontend redirects settings
   # Základ odkazov v aktivačnom a reset-password maile. Prázdna hodnota tu
   # prebije default z application.properties a maily vedú nikam.
-  NEWTABLINKS_WEB_BASE_URL: https://new-tab-links.matejkovac.sk
+  NEWTABLINKS_WEB_BASE_URL: https://tabilinks.app
   # Cesty sedia s routami Angular stránky (application-route-paths.ts).
   NEWTABLINKS_WEB_ACTIVATION_PATH: /activate
   NEWTABLINKS_WEB_OAUTH_CALLBACK_PATH: /auth/callback
@@ -108,10 +108,10 @@ env:
 
   ### CORS a websocket
   # Prehliadačové originy. Web aj rozšírenie volajú REST API...
-  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://new-tab-links.matejkovac.sk,chrome-extension://*
+  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://tabilinks.app,chrome-extension://*
   # ...a web si na to isté API otvára aj STOMP websocket, takže default
   # (iba chrome-extension://*) mu nestačí.
-  NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: https://new-tab-links.matejkovac.sk,chrome-extension://*
+  NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: https://tabilinks.app,chrome-extension://*
 
 resources:
   requests:

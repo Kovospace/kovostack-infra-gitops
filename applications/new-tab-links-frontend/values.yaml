@@ -8,7 +8,7 @@ image: new-tab-links-frontend
 # Nastavenie domény
 # The image serves the built site with nginx on 8080 — 5173 is only the dev server.
 containerPort: 8080
-host: new-tab-links.matejkovac.sk
+host: tabilinks.app
 
 # Probes render only when this is set; the image answers /healthz.
 healthPath: /healthz
@@ -22,7 +22,7 @@ healthPath: /healthz
 env:
   # Resolved by the visitor's browser, so it must be the public address —
   # a cluster-internal service name would not work.
-  NEWTABLINKS_BACKEND_BASE_URL: https://api.new-tab-links.matejkovac.sk
+  NEWTABLINKS_BACKEND_BASE_URL: https://api.tabilinks.app
   NEWTABLINKS_WEB_CLIENT_DEVICE_NAME: "NewTabLinks website"
   # Shared, non-secret key that admits the website to the backend's
   # username-existence endpoint. It ships inside the public JS bundle, so it

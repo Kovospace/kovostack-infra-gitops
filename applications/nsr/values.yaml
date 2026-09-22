@@ -5,7 +5,7 @@ image: nsr-frontend
 # Setting it here too would create a second source of truth that always loses.
 
 containerPort: 3000
-host: nsr.matejkovac.sk
+host: neser.sk
 
 persistence:
   data:

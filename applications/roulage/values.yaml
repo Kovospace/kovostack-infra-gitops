@@ -6,6 +6,7 @@ image: roulage-frontend
 
 containerPort: 3000
 host: roulage.sk
+wwwAlias: true
 
 persistence:
   data:
@@ -24,7 +25,7 @@ env:
   # Extra origins (comma-separated) allowed to log into the admin / call the
   # API, in addition to NEXT_PUBLIC_SERVER_URL. Only needed when the site is
   # reached from more than one origin (e.g. bare IP for testing, or www).
-  ALLOWED_ORIGINS: https://www.roulage.sk,https://roulage.sk,https://roulage.matejkovac.sk,https://www.roulage.matejkovac.sk
+  ALLOWED_ORIGINS: https://www.roulage.sk,https://roulage.sk
   # NEXT_PUBLIC_GOOGLE_MAPS_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_KEY:-} # moved into vault
 
 resources:

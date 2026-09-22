@@ -4,6 +4,7 @@ image: paster-frontend
 
 containerPort: 4204
 host: paster.cloud
+wwwAlias: true
 
 env:
   # API_KEY: "" # presunuté do vault

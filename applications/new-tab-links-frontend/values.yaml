@@ -9,6 +9,7 @@ image: new-tab-links-frontend
 # The image serves the built site with nginx on 8080 — 5173 is only the dev server.
 containerPort: 8080
 host: tabilinks.app
+wwwAlias: true
 
 # Probes render only when this is set; the image answers /healthz.
 healthPath: /healthz

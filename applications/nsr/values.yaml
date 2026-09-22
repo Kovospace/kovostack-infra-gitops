@@ -5,7 +5,8 @@ image: nsr-frontend
 # Setting it here too would create a second source of truth that always loses.
 
 containerPort: 3000
-host: neser.sk
+host: neser.matejkovac.sk
+wwwAlias: true
 
 persistence:
   data:
@@ -24,7 +25,7 @@ env:
   # Extra origins (comma-separated) allowed to log into the admin / call the
   # API, in addition to NEXT_PUBLIC_SERVER_URL. Only needed when the site is
   # reached from more than one origin (e.g. bare IP for testing, or www).
-  ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk
+  ALLOWED_ORIGINS: https://www.neser.sk,https://neser.sk,https://neser.matejkovac.sk,https://www.neser.matejkovac.sk
 
 resources:
   requests:

@@ -4,7 +4,7 @@ image: istatdb-frontend
 
 containerPort: 3000
 host: istatdb.matejkovac.sk
-#clusterIssuer: letsencrypt-staging # docasny certifikat
+wwwAlias: true
 
 persistence:
   db:

@@ -16,6 +16,12 @@ host: api.tabilinks.app
 # Probes render only when this is set. Actuator exposes health,info by default
 # and has probes enabled, so /actuator/health answers from start-up.
 healthPath: /actuator/health
+# Separate probes (chart-app 1.5.0). /actuator/health includes the database, so as
+# a liveness check a database outage restarted every pod at once - which fixes
+# nothing. Liveness must not depend on what a restart cannot cure; readiness takes
+# the pod out of the Service instead. Both sub-paths are public in the backend.
+readinessPath: /actuator/health/readiness
+livenessPath: /actuator/health/liveness
 
 # Pripojenie na postgres databázu
 externalServices:

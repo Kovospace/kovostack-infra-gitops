@@ -64,17 +64,11 @@ env:
 
   ### Mail sender settings
   NEWTABLINKS_MAIL_ENABLED: true
-  # Odosielateľ musí byť adresa na doméne, ktorú má Brevo overenú (DKIM/SPF/DMARC
-  # záznamy publikované, doména verified). Overená je matejkovac.sk; pôvodná
-  # info@newtablinks.app overená nebola a Brevo ju odmietalo až pri odosielaní:
-  # "Sending has been rejected because the sender you used ... is not valid."
   # Na noreply@ netreba schránku — Brevo overuje doménu, nie prijímajúcu schránku.
-  # Dočasné bývanie: keď rozšírenie vyjde v Chrome Web Store a appka dostane
-  # vlastnú doménu, treba ju overiť v Brevo a túto hodnotu prepísať.
-  NEWTABLINKS_MAIL_FROM_ADDRESS: "noreply@mail.new-tab-links.matejkovac.sk"
-  # Zobrazované meno je voľný text — Brevo ho voči registrovanému odosielateľovi
-  # (NewTabLinks) nekontroluje, takže je to čisto kozmetika.
-  NEWTABLINKS_MAIL_FROM_NAME: "NewTabLinks Robot"
+  # Doména mail.tabilinks.app je v Brevo overená (DKIM, brevo-code, DMARC).
+  NEWTABLINKS_MAIL_FROM_ADDRESS: "noreply@mail.tabilinks.app"
+  # Zobrazované meno je voľný text; zhoduje sa s odosielateľom v Brevo.
+  NEWTABLINKS_MAIL_FROM_NAME: "Tabilinks Robot"
   SPRING_MAIL_HOST: smtp-relay.brevo.com
   SPRING_MAIL_PORT: 2525
   # SPRING_MAIL_USERNAME: "" # presunuté do vault

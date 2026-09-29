@@ -116,6 +116,9 @@ env:
 resources:
   requests:
     cpu: 250m
-    memory: 128Mi
+    # The JVM starts with InitialRAMPercentage=50 and grows to MaxRAMPercentage=75
+    # of the limit (Dockerfile JAVA_OPTS): 256Mi of heap from the first second, up
+    # to 384Mi. A 128Mi request let the scheduler place pods the node cannot hold.
+    memory: 384Mi
   limits:
     memory: 512Mi

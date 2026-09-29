@@ -5,6 +5,13 @@ initContainers:
   - name: migrations
     image: new-tab-links-migrations
 
+# Two pods: a crash or a rollout no longer takes the API down. Safe because
+# nothing a request depends on lives in a pod - OAuth sign-in state is a sealed
+# cookie, websocket refresh hints reach every pod through Postgres NOTIFY, and
+# the admin lockout is a table (migrations V13). Still one node, so this does
+# not survive the VM going down.
+replicas: 2
+
 
 # Nastavenie domény
 # Spring Boot listens on 8080 (`server.port` defaults to 8080, chart default is

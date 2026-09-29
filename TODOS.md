@@ -1,5 +1,32 @@
 # TODOS
 
+## High priority
+
+### Messaging infrastructure (a message broker)
+
+The new-tab-links-backend replicas talk to each other through a messaging port
+(`common/messaging` in that repository: `MessagePublisher`, `MessageSubscriber`,
+`MessageTopic`), carried today by PostgreSQL `NOTIFY`/`LISTEN` on the
+application's own database. That is enough for fan-out hints - the websocket
+"your data changed" signal - and nothing more: no durability, no
+acknowledgement, no work queues, payloads under 8 KB. More than that one use
+will need a real broker, and nothing needing guaranteed delivery or competing
+consumers should be built on the PostgreSQL transport meanwhile.
+
+- **RabbitMQ** (its STOMP plugin is what Spring's broker relay speaks, should the
+  websocket ever move there too) in its own namespace, `messaging`, run by the
+  RabbitMQ Cluster Operator from an Application under `infrastructure/`.
+- **One replica while the cluster is one node.** Write the pod anti-affinity
+  anyway, and go to three replicas (quorum queues need a majority) once there
+  are nodes to spread them over. Three replicas on one VM survive nothing but a
+  pod crash and cost three times the memory.
+- A **NetworkPolicy** letting only application namespaces reach it; a vhost and
+  a user per application, credentials in Infisical; Prometheus metrics; memory
+  limits (RabbitMQ blocks publishers at its memory watermark).
+- The backend switches over with a new `newtablinks.messaging.transport` value
+  and a transport implementation - no caller changes. Nothing here has to move
+  in step with that beyond an env var.
+
 ## Nice to have in the future
 
 ### Publish charts/app to the OCI registry

@@ -1,0 +1,26 @@
+---
+# new-tab-links-frontend — dev only. Loaded after values.yaml, so these win.
+# Application, namespace and chart name: new-tab-links-frontend-dev.
+
+# Namespace, Secret and Ingress all derive from this (not the Infisical folder:
+# the ApplicationSet sets that to /new-tab-links-frontend). Must equal the
+# Application name.
+name: new-tab-links-frontend-dev
+
+replicas: 1
+
+# Secrets: no `secrets` block here, on purpose. The ApplicationSet sets the
+# Infisical folder (/new-tab-links-frontend, the same as prod's) and environment for
+# every app; which Infisical environment dev reads is `infisicalEnv` in
+# environments/dev/new-tab-links-frontend.yaml.
+
+# Nastavenie domény — pokryté wildcardom *.matejkovac.sk, certifikát per host
+# cez HTTP-01. Konvencia pre dev: subdomény dev.matejkovac.sk.
+host: tabilinks.dev.matejkovac.sk
+# Bez www — www.tabilinks.dev.matejkovac.sk nikto nepíše.
+wwwAlias: false
+
+env:
+  # The dev backend's public address. Its CORS and websocket origins list this
+  # app's host (applications/new-tab-links-backend/dev.yaml).
+  NEWTABLINKS_BACKEND_BASE_URL: https://api.tabilinks.dev.matejkovac.sk

@@ -8,6 +8,27 @@ argo-cd:
     params:
       # Traefik terminates TLS; let ArgoCD serve plain HTTP behind it.
       server.insecure: true
+
+      # --- ApplicationSet controller (environments/applicationset.yaml) -----
+      # The controller is part of the upstream chart and always installed; these
+      # only change how it treats the Applications it generates.
+      #
+      # create-update: it creates and updates Applications but never deletes
+      # one. A renamed or removed environments/<env>/<app>.yaml then leaves the
+      # Application in place instead of deleting it — removing an app is a
+      # deliberate `kubectl delete application`, not a side effect of a file
+      # move. It also makes the controller strip its ownerReferences from the
+      # Applications when the ApplicationSet itself is deleted, so they are not
+      # garbage-collected with it. Upstream default is `sync`, which deletes.
+      applicationsetcontroller.policy: create-update
+      # Lets the ApplicationSet's own spec.syncPolicy.applicationsSync apply.
+      # Without it the field is silently ignored and only the line above counts.
+      # The ApplicationSet states create-update too, so the two agree.
+      applicationsetcontroller.enable.policy.override: true
+      # Default globbing is greedy: `environments/*/*.yaml` behaves like
+      # `environments/**/*.yaml`. The new one makes `*` stop at a `/`, so a
+      # stray file one directory deeper is not turned into an Application.
+      applicationsetcontroller.enable.new.git.file.globbing: true
     cm:
       timeout.reconciliation: 180s
 

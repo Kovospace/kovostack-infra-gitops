@@ -68,3 +68,45 @@ spec:
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
+---
+# Non-production workloads, one project per environment: `applications-<env>`.
+# The ApplicationSet (environments/applicationset.yaml) puts every Application
+# generated from environments/<env>/ other than prod into it.
+#
+# Same repos and kinds as `applications`, but fenced to the environment's own
+# names. A dev values file that forgets `name` — or copies the prod one — would
+# otherwise render the prod Namespace, the prod ClusterSecretStore and a
+# Deployment into the prod namespace, and ArgoCD would happily take them over.
+# Here that sync is refused instead: namespaced resources may only land in
+# `*-dev`, and the two cluster-scoped kinds are matched by name as well (the
+# `name` glob on a whitelist entry needs ArgoCD >= 3.x; we run 3.5).
+#
+# Adding an environment means adding a copy of this project with its suffix.
+# Without it the generated Applications report "project not found" and deploy
+# nothing — which is the right way to fail.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: applications-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  description: Dev workloads deployed from the app chart — *-dev namespaces only
+  sourceRepos:
+    - git@github.com:Kovospace/kovostack-helm-charts.git
+    - git@github.com:Kovospace/kovostack-infra-gitops.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: '*-dev'
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+      name: '*-dev'
+    # charts/app names it infisical-<name>, and <name> ends in -dev.
+    - group: external-secrets.io
+      kind: ClusterSecretStore
+      name: 'infisical-*-dev'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

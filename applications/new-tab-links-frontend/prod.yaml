@@ -1,0 +1,21 @@
+---
+# new-tab-links-frontend — prod only. Loaded after values.yaml, so these win.
+#
+# Everything here differs per environment; values.yaml holds what they share
+# and must not carry any of these keys. A key left there would be inherited by
+# every environment whose own file forgets it — dev claiming the prod host.
+
+# Namespace, Infisical folder (/new-tab-links-frontend), Secret and Ingress all
+# derive from this. Must equal the Application name.
+name: new-tab-links-frontend
+
+# Nastavenie domény
+host: tabilinks.app
+wwwAlias: true
+
+env:
+  # Resolved by the visitor's browser, so it must be the public address —
+  # a cluster-internal service name would not work. Must be the backend's host
+  # in the same environment (applications/new-tab-links-backend/prod.yaml),
+  # whose CORS and websocket origins in turn must list this app's host.
+  NEWTABLINKS_BACKEND_BASE_URL: https://api.tabilinks.app

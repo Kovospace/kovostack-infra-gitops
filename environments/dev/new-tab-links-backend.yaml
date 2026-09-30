@@ -1,0 +1,13 @@
+---
+# new-tab-links-backend in dev (Application new-tab-links-backend-dev) — see
+# environments/README.md for the keys. Bump chartRevision here first; prod's
+# file follows once this has run.
+chartRevision: chart-app-1.5.0
+envValuesFile: true
+initTagsFile: true
+# Infisical environment `prod`, not `dev`: dev reads prod's secrets for now,
+# deliberately — Infisical's dev environment is not populated yet. Once it is
+# (same folder, /new-tab-links-backend, and readable by the machine identity in
+# the infisical-credentials Secret), delete this line and dev reads Infisical
+# `dev`, named after this directory.
+infisicalEnv: prod

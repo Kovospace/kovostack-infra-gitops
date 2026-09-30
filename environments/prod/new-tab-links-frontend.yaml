@@ -1,0 +1,5 @@
+---
+# new-tab-links-frontend in prod — see environments/README.md for the keys.
+chartRevision: chart-app-1.4.1
+envValuesFile: true
+initTagsFile: false

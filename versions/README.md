@@ -1,19 +1,33 @@
 # versions
 
 Image tags, and nothing else. Written by build pipelines, not by hand. One file
-per app, plus a second one for any init container image that is released on its
-own cadence.
+per app **per environment**, plus a second one for any init container image
+that is released on its own cadence.
 
 ```yaml
 # versions/nsr.yaml
 imageTag: sha-a4acb4c
 ```
 
-Each Application loads it after the app's own values, so it wins:
+The file is named after the **Application**, so the environment is part of the
+name:
+
+| Environment | Application | Image tag | Init tags |
+|---|---|---|---|
+| prod | `<app>` | `versions/<app>.yaml` | `versions/<app>-init.yaml` |
+| dev (any non-prod) | `<app>-dev` | `versions/<app>-dev.yaml` | `versions/<app>-dev-init.yaml` |
+
+prod's paths are the ones pipelines in other repositories have always written;
+they did not move when environments arrived, and must not. A dev pipeline is a
+separate job writing the `-dev` file — a push to one never deploys the other.
+
+Each Application loads it after the app's own values, so it wins (the
+ApplicationSet in `environments/applicationset.yaml` builds this list):
 
 ```yaml
 valueFiles:
   - $values/applications/nsr/values.yaml   # config, edited by humans
+  - $values/applications/nsr/prod.yaml     # per-env config, if the app has one
   - $values/versions/nsr.yaml              # image tag, written by CI
 ```
 
@@ -45,9 +59,14 @@ initImageTags:
 ```yaml
 valueFiles:
   - $values/applications/new-tab-links-backend/values.yaml    # config, humans
+  - $values/applications/new-tab-links-backend/prod.yaml      # prod config, humans
   - $values/versions/new-tab-links-backend.yaml               # app tag, CI
   - $values/versions/new-tab-links-backend-init.yaml          # init tags, CI
 ```
+
+The init file is only loaded when the app's environment file says
+`initTagsFile: true` (`environments/<env>/<app>.yaml`) — a new init-tags file
+needs that flag set once, by hand, in each environment that has it.
 
 A file of its own, rather than another key in the app's, for exactly the reason
 the app's tag is not in `applications/`: two pipelines writing one file race,
@@ -92,6 +111,16 @@ The app's build job commits the new tag here. In GitHub Actions:
 
 ArgoCD sees the commit and syncs. Nothing else is needed — that push *is* the
 deployment.
+
+`APP` is the Application name: `new-tab-links-backend` for prod,
+`new-tab-links-backend-dev` for dev. A dev pipeline (e.g. on pushes to the
+app's development branch) is the same job with `APP` suffixed; promoting a build
+to prod is writing the same `TAG` into the prod file.
+
+**While dev shares the prod database**, the backend's dev init tags
+(`versions/new-tab-links-backend-dev-init.yaml`) migrate the *production*
+schema. A dev migrations pipeline must not run ahead of prod's until the dev
+database exists — see `applications/new-tab-links-backend/dev.yaml`.
 
 An init container's pipeline writes its own file the same way. Note `git add`:
 `commit -a` stages modifications, and the first run creates the file.

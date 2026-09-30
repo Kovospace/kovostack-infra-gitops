@@ -14,6 +14,8 @@ directory and picks up every `*.yaml`.
 |    0 | `argocd`          | Self-manages the controller running all of this   |
 |   10 | `cert-manager`    | Issues certs the ingress layer needs              |
 |   10 | `external-secrets`| Populates Secrets workloads depend on             |
+|   15 | `k8up`            | Backup CRDs, before any app renders a Schedule    |
+|   15 | `backup`          | restic gateway; needs external-secrets' CRDs      |
 |   20 | `traefik`         | Ingress, after issuers exist                      |
 |   30 | `applications`    | Workloads, after infrastructure is healthy        |
 
@@ -24,7 +26,7 @@ filter useful — plumbing in one bucket, your own workloads in the other.
 
 | Project | Applications | Source repos | Cluster-scoped resources |
 |---|---|---|---|
-| `infra` | argocd, cert-manager, external-secrets, traefik, namespaces, storage, applications | any | any |
+| `infra` | argocd, cert-manager, external-secrets, traefik, k8up, backup, namespaces, storage, applications | any | any |
 | `applications` | everything using the app chart | this repo + kovostack-helm-charts | `Namespace` only |
 | `default` | `root` alone | — | — |
 

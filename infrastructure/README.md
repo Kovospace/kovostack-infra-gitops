@@ -43,6 +43,12 @@ helm template traefik infrastructure/traefik -n traefik
 | `cert-manager/`    | `cert-manager` (charts.jetstack.io)       | `cert-manager`     |
 | `external-secrets/`| `external-secrets` (charts.external-secrets.io) | `external-secrets` |
 | `traefik/`         | `traefik` (traefik.github.io/charts)      | `traefik`          |
+| `k8up/`            | `k8up` (k8up-io.github.io/k8up)           | `k8up`             |
+| `backup/`          | none — local chart, `rclone serve restic` | `backup`           |
+
+`k8up/` and `backup/` together are the backup system: the operator, and the
+restic REST gateway it writes through to the Hetzner Storage Box. Each has a
+README; `backup/README.md` holds the setup and restore procedures.
 
 `cert-manager/templates/cluster-issuers.yaml` adds the Let's Encrypt staging and
 production `ClusterIssuer`s on top of the upstream chart.

@@ -80,47 +80,64 @@ What it needs:
 The chart already lives in `kovostack-helm-charts`, so this is purely about
 publishing an artifact from it — the source does not move again.
 
-### Backup CronJob for persistent volumes
+### Backups for persistent volumes and databases — K8up, in progress
 
 Nothing currently backs up PVC contents. `local-path-retain` protects against a
 deleted claim, but not against a lost VM or a corrupted file — and neither does
 git. **Restoring the cluster from this repo produces a healthy app with an empty
 database and no uploads.** Infisical covers the secrets; nothing covers the data.
 
-Add an opt-in CronJob to `charts/app`, driven by the existing `persistence`
-entries:
+**Decided: K8up, not a hand-rolled CronJob in `charts/app`.** K8up runs restic
+as Jobs from a per-namespace `Schedule`, handles repository init, retention
+(prune) and checks, and streams database dumps through `PreBackupPod` /
+backup-command annotations. Destination: a **Hetzner Storage Box** over SFTP,
+through an in-cluster `rclone serve restic` gateway, because K8up has no SFTP
+backend. A home Raspberry Pi running `rest-server` is a planned **second**
+destination, not now. Design and procedures: `infrastructure/backup/README.md`.
 
-```yaml
-backup:
-  enabled: true
-  schedule: "0 3 * * *"
-  sqlite: /app/data/payload.db   # optional: consistent DB snapshot
-  destination: s3:...            # restic repo
-```
+**Done** (branch `feature/backups-k8up`):
 
-**The part that must not be got wrong:** a live SQLite file cannot be backed up
-with `cp`/`tar`. A copy taken mid-transaction restores as a corrupt database,
-and the failure is silent until the restore. Use SQLite's own snapshot:
+- K8up operator, `infrastructure/k8up/` (chart 4.10.0, operator v2.16.0), wave 15.
+- restic REST gateway, `infrastructure/backup/`: SSH key on port 23, pinned
+  host key, basic auth, credentials from Infisical `/backup`, wave 15.
+- Contract for the chart:
+  `rest:http://restic-gateway.backup.svc.cluster.local:8080/<name>/`.
+- Restore procedures written (restic CLI via the gateway; K8up `Restore`).
 
-```bash
-sqlite3 /app/data/payload.db ".backup '/tmp/snapshot.db'"
-```
+**Remaining:**
 
-then push the snapshot and the uploads directory with `restic` (deduplicating,
-with history, and it can verify a restore).
+- `charts/app`: render the `Schedule` (backup + prune + check), the `/backup`
+  ExternalSecret, and the database dump. The helm-chart-devops agent is doing
+  this in parallel. Then raise `targetRevision` app by app.
+- Manual: Storage Box sub-account, key, host key, Infisical `/backup`, automatic
+  snapshots (listed in `infrastructure/backup/README.md`).
+- The requirements below that are not met yet.
 
-Requirements worth settling before building it:
+**Requirements, unchanged:**
 
-- Off-VM destination — a backup on the same disk protects against nothing that
-  actually happens.
-- Restore **tested**, not assumed. An untested backup is a guess.
-- Retention, so it neither grows forever nor keeps only yesterday's corruption.
-- Alert on failure; a silently broken backup is worse than none, because it
-  stops anyone worrying about it.
+- **SQLite must not be copied live.** A copy taken mid-transaction restores as
+  a corrupt database, and the failure is silent until the restore. K8up backs
+  up the PVC's files as they are, so an app on SQLite needs SQLite's own
+  snapshot first — `sqlite3 /app/data/payload.db ".backup '/tmp/snapshot.db'"`
+  as a backup command streamed to K8up, or a pre-backup step writing the
+  snapshot into the volume — and must not rely on the raw `.db` file in the PVC
+  snapshot.
+- **Off-VM destination.** Met by the Storage Box once the manual steps are done.
+- **Restore tested, not assumed.** An untested backup is a guess. Do procedure A
+  in `infrastructure/backup/README.md` for every app after its first backup, and
+  again periodically.
+- **Retention**, so it neither grows forever nor keeps only yesterday's
+  corruption: K8up `prune` in each Schedule (e.g. 7 daily, 4 weekly, 6 monthly),
+  plus Storage Box snapshots for deletion/ransomware protection, since the
+  gateway is deliberately not append-only.
+- **Alert on failure.** Not built. Nothing in the cluster can alert today. The
+  cheapest reliable option is a healthchecks.io dead-man's switch fed by the
+  Schedule's `statsURL` (see `infrastructure/k8up/README.md`). A silently
+  broken backup is worse than none, because it stops anyone worrying about it.
 
-**Consider instead:** the platform already runs Postgres, and Payload has a
-Postgres adapter. Moving the database there reduces this to backing up uploads
-only, and inherits whatever backup story Postgres gets anyway.
+**Still worth considering:** the platform already runs Postgres, and Payload has
+a Postgres adapter. Moving the database there removes the SQLite problem
+entirely and leaves only uploads on the PVC.
 
 ### Infisical Kubernetes auth instead of a static machine identity
 

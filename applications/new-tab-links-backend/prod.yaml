@@ -1,0 +1,41 @@
+---
+# new-tab-links-backend — prod only. Loaded after values.yaml, so these win.
+#
+# Everything here differs per environment; values.yaml holds what they share
+# and must not carry any of these keys. A key left there would be inherited by
+# every environment whose own file forgets it — dev claiming the prod host,
+# or signing tokens as the prod issuer.
+
+# Namespace, Infisical folder (/new-tab-links-backend), Secret and Ingress all
+# derive from this. Must equal the Application name.
+name: new-tab-links-backend
+
+# Two pods: a crash or a rollout no longer takes the API down. Safe because
+# nothing a request depends on lives in a pod - OAuth sign-in state is a sealed
+# cookie, websocket refresh hints reach every pod through Postgres NOTIFY, and
+# the admin lockout is a table (migrations V13). Still one node, so this does
+# not survive the VM going down.
+replicas: 2
+
+# Nastavenie domény
+host: api.tabilinks.app
+
+env:
+  ### AUTH settings
+  NEWTABLINKS_AUTH_JWT_ISSUER: https://api.tabilinks.app
+
+  ### Database settings
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/newtablinks
+  FLYWAY_URL: jdbc:postgresql://postgres:5432/newtablinks
+
+  ### Frontend redirects settings
+  # Základ odkazov v aktivačnom a reset-password maile. Prázdna hodnota tu
+  # prebije default z application.properties a maily vedú nikam.
+  NEWTABLINKS_WEB_BASE_URL: https://tabilinks.app
+
+  ### CORS a websocket
+  # Prehliadačové originy. Web aj rozšírenie volajú REST API...
+  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://tabilinks.app,chrome-extension://*
+  # ...a web si na to isté API otvára aj STOMP websocket, takže default
+  # (iba chrome-extension://*) mu nestačí.
+  NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: https://tabilinks.app,chrome-extension://*

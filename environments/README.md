@@ -34,7 +34,7 @@ rather than guessing. Everything else is derived from the path:
 |---|---|---|
 | Application, namespace, chart `name` | `<app>` | `<app>-<env>` |
 | AppProject | `applications` | `applications-<env>` |
-| Infisical folder / Secret | `/<app>`, `<app>-secrets` | `/<app>-<env>`, `<app>-<env>-secrets` |
+| Infisical folder / Secret | `/<app>`, `<app>-secrets` | `/<app>-<env>` unless `secrets.path` overrides it, `<app>-<env>-secrets` |
 | value files, in order | `applications/<app>/values.yaml`<br>`applications/<app>/prod.yaml` *(if `envValuesFile`)*<br>`versions/<app>.yaml`<br>`versions/<app>-init.yaml` *(if `initTagsFile`)* | `applications/<app>/values.yaml`<br>`applications/<app>/<env>.yaml` *(if `envValuesFile`)*<br>`versions/<app>-<env>.yaml`<br>`versions/<app>-<env>-init.yaml` *(if `initTagsFile`)* |
 
 prod keeps the bare names because the Applications that existed before the
@@ -58,9 +58,14 @@ One file here, plus its values and versions files. `/new-app` writes all of them
    a copy of `applications-dev` with the suffix changed. Without it the
    generated Applications report *project not found* and deploy nothing.
 3. Per app: `applications/<app>/<env>.yaml` (with `name: <app>-<env>` and every
-   environment-specific key), `versions/<app>-<env>.yaml`, an Infisical folder
-   `/<app>-<env>`, and DNS for its hosts — convention: subdomains of
-   `<env>.matejkovac.sk`.
+   environment-specific key), `versions/<app>-<env>.yaml`, its secrets, and DNS
+   for its hosts — convention: subdomains of `<env>.matejkovac.sk`.
+
+   Secrets come from Infisical folder `/<app>-<env>` by default. To reuse
+   another folder or Infisical environment instead, set `secrets.path` and
+   `secrets.infisical.environmentSlug` in `<env>.yaml` — the NewTabLinks dev
+   apps read prod's folders in Infisical's `prod` environment that way for now
+   (`applications/new-tab-links-*/dev.yaml`).
 
 `applicationset.yaml` does not change.
 
@@ -97,6 +102,6 @@ pipelines (`versions/README.md`). Promoting a build means writing the same tag
 into the prod file.
 
 Anything pushed to `main` goes live in its environment — dev included. The
-dev environment currently shares prod's database, mailer and Google OAuth
-client (see `applications/new-tab-links-backend/dev.yaml`), so a dev change is
-not automatically a harmless one.
+NewTabLinks dev environment currently shares prod's database, mailer, Google
+OAuth client and Infisical secrets (see `applications/new-tab-links-*/dev.yaml`),
+so a dev change is not automatically a harmless one.

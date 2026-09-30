@@ -1,0 +1,6 @@
+# Dev's migrations tag — written by the migrations pipeline, see versions/README.md.
+# Seeded with prod's tag. WHILE DEV SHARES THE PROD DATABASE this migrates prod:
+# do not move it ahead of versions/new-tab-links-backend-init.yaml until the dev
+# database exists (applications/new-tab-links-backend/dev.yaml).
+initImageTags:
+  migrations: "0.0.14"

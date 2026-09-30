@@ -1,0 +1,7 @@
+---
+# new-tab-links-frontend in dev (Application new-tab-links-frontend-dev) — see
+# environments/README.md for the keys. Bump chartRevision here first; prod's
+# file follows once this has run.
+chartRevision: chart-app-1.4.1
+envValuesFile: true
+initTagsFile: false

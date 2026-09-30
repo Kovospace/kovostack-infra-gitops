@@ -1,0 +1,45 @@
+---
+# new-tab-links-backend — dev only. Loaded after values.yaml, so these win.
+# Application, namespace and chart name: new-tab-links-backend-dev.
+#
+# !!! Dev runs against PRODUCTION data for now, deliberately: the same
+# database, the same Brevo account, the same Google OAuth client. Until the dev
+# database exists:
+#   - the `migrations` init container migrates the PRODUCTION schema. Moving
+#     versions/new-tab-links-backend-dev-init.yaml ahead of prod's file applies
+#     that schema to prod before prod's code is ready for it — the prod pods
+#     then fail `ddl-auto: validate` on their next restart;
+#   - anything dev writes, deletes or mails is real.
+#
+# Switching to a separate database later is a change to this file (the two
+# URLs below) and to Infisical /new-tab-links-backend-dev (the credentials) —
+# nothing else.
+
+# Namespace, Infisical folder (/new-tab-links-backend-dev), Secret and Ingress
+# all derive from this. Must equal the Application name.
+name: new-tab-links-backend-dev
+
+replicas: 1
+
+# Nastavenie domény — pokryté wildcardom *.matejkovac.sk, certifikát per host
+# cez HTTP-01. Konvencia pre dev: subdomény dev.matejkovac.sk.
+host: api.tabilinks.dev.matejkovac.sk
+
+env:
+  ### AUTH settings
+  # Its own issuer, so tokens minted here are not accepted as prod's (as far as
+  # the backend checks `iss`).
+  NEWTABLINKS_AUTH_JWT_ISSUER: https://api.tabilinks.dev.matejkovac.sk
+
+  ### Database settings — PRODUCTION database, see the top of this file.
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/newtablinks
+  FLYWAY_URL: jdbc:postgresql://postgres:5432/newtablinks
+
+  ### Frontend redirects settings
+  # Odkazy v maile vedú na dev web.
+  NEWTABLINKS_WEB_BASE_URL: https://tabilinks.dev.matejkovac.sk
+
+  ### CORS a websocket
+  # Iba dev web (a rozšírenie) — prod web na dev API nesiaha.
+  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://tabilinks.dev.matejkovac.sk,chrome-extension://*
+  NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: https://tabilinks.dev.matejkovac.sk,chrome-extension://*

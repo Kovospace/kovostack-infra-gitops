@@ -12,14 +12,34 @@
 #   - anything dev writes, deletes or mails is real.
 #
 # Switching to a separate database later is a change to this file (the two
-# URLs below) and to Infisical /new-tab-links-backend-dev (the credentials) —
-# nothing else.
+# URLs below, and `secrets.infisical.environmentSlug` → dev) and to Infisical's
+# dev environment (the credentials, under the same /new-tab-links-backend
+# folder) — nothing else.
 
-# Namespace, Infisical folder (/new-tab-links-backend-dev), Secret and Ingress
-# all derive from this. Must equal the Application name.
+# Namespace, Secret and Ingress all derive from this (the Infisical folder
+# would too, but `secrets.path` below overrides it). Must equal the Application
+# name.
 name: new-tab-links-backend-dev
 
 replicas: 1
+
+# Secrets: prod's Infisical folder, prod environment — deliberately, for now.
+# There is no /new-tab-links-backend-dev folder. The chart would otherwise
+# derive /<name> (= /new-tab-links-backend-dev) from `name` above; `path` pins
+# it to prod's folder instead. Only the lookup is shared: the synced Secret is
+# still new-tab-links-backend-dev-secrets in the dev namespace, read through
+# its own ClusterSecretStore infisical-new-tab-links-backend-dev.
+#
+# The later switch to real dev secrets: keep `path` exactly as it is, change
+# `environmentSlug` to `dev`, fill /new-tab-links-backend in Infisical's *dev*
+# environment, and make sure the machine identity behind the
+# infisical-credentials Secret (external-secrets namespace) can read the dev
+# environment — otherwise the ExternalSecret fails and the pods stop at
+# CreateContainerConfigError.
+secrets:
+  path: /new-tab-links-backend
+  infisical:
+    environmentSlug: prod
 
 # Nastavenie domény — pokryté wildcardom *.matejkovac.sk, certifikát per host
 # cez HTTP-01. Konvencia pre dev: subdomény dev.matejkovac.sk.

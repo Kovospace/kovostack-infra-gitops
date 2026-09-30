@@ -2,11 +2,30 @@
 # new-tab-links-frontend — dev only. Loaded after values.yaml, so these win.
 # Application, namespace and chart name: new-tab-links-frontend-dev.
 
-# Namespace, Infisical folder (/new-tab-links-frontend-dev), Secret and Ingress
-# all derive from this. Must equal the Application name.
+# Namespace, Secret and Ingress all derive from this (the Infisical folder
+# would too, but `secrets.path` below overrides it). Must equal the Application
+# name.
 name: new-tab-links-frontend-dev
 
 replicas: 1
+
+# Secrets: prod's Infisical folder, prod environment — deliberately, for now.
+# There is no /new-tab-links-frontend-dev folder. The chart would otherwise
+# derive /<name> (= /new-tab-links-frontend-dev) from `name` above; `path` pins
+# it to prod's folder instead. Only the lookup is shared: the synced Secret is
+# still new-tab-links-frontend-dev-secrets in the dev namespace, read through
+# its own ClusterSecretStore infisical-new-tab-links-frontend-dev.
+#
+# The later switch to real dev secrets: keep `path` exactly as it is, change
+# `environmentSlug` to `dev`, fill /new-tab-links-frontend in Infisical's *dev*
+# environment, and make sure the machine identity behind the
+# infisical-credentials Secret (external-secrets namespace) can read the dev
+# environment — otherwise the ExternalSecret fails and the pods stop at
+# CreateContainerConfigError.
+secrets:
+  path: /new-tab-links-frontend
+  infisical:
+    environmentSlug: prod
 
 # Nastavenie domény — pokryté wildcardom *.matejkovac.sk, certifikát per host
 # cez HTTP-01. Konvencia pre dev: subdomény dev.matejkovac.sk.

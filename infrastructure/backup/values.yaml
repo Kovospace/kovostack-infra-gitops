@@ -1,0 +1,59 @@
+---
+# Consumed by templates/. No upstream chart: see README.md for why this exists.
+
+infisical:
+  # Named the way charts/app names its per-app stores (infisical-<name>), so
+  # `backup` reads as one more folder owner. App charts that need
+  # RESTIC_PASSWORD and the gateway credentials in their own namespace should
+  # REFERENCE this store, not render another store of the same name — two
+  # Applications owning one ClusterSecretStore fight over it on every sync.
+  storeName: infisical-backup
+  secretsPath: /backup
+
+  # Same Infisical, project and machine identity as
+  # infrastructure/external-secrets/values.yaml. Keep them in step.
+  hostAPI: https://secrets.matejkovac.sk
+  projectSlug: kovostack
+  environmentSlug: prod
+  credentialsSecret: infisical-credentials
+  credentialsNamespace: external-secrets
+
+  refreshInterval: 1h
+
+gateway:
+  # The Service name is part of the contract with charts/app:
+  #   http://restic-gateway.backup.svc.cluster.local:8080/<app name>/
+  # Renaming it, or the port, breaks every app's backups at once.
+  name: restic-gateway
+  port: 8080
+
+  image: docker.io/rclone/rclone
+  # rclone release 1.75.1 (2026-09-04). Upstream publishes no `v` prefix on
+  # image tags.
+  tag: "1.75.1"
+
+  storageBox:
+    # 23 is the Storage Box's extended SSH service, and the port Hetzner
+    # documents for key-based SFTP. Port 22 speaks SFTP too, but wants keys in
+    # RFC4716 format; don't mix them up.
+    port: 23
+    # Directory inside the sub-account's home that holds one restic repository
+    # per app. Not the home itself: that also holds .ssh/authorized_keys.
+    path: restic
+    # Hetzner allows 10 simultaneous connections per Storage Box account.
+    # rclone's default is unlimited. 4 leaves room for a second Pod during a
+    # rolling update and for a person with sftp open at the same time.
+    connections: 4
+    # Pin the algorithm as well as the key. Go's SSH client otherwise
+    # negotiates whichever host key type it prefers, and a known_hosts holding
+    # only the ed25519 line then fails with "knownhosts: key mismatch".
+    hostKeyAlgorithms: ssh-ed25519
+
+  # Measured locally at ~32Mi while streaming a 300 MB backup. rclone passes
+  # restic's pack files through without buffering them whole.
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 256Mi

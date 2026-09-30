@@ -1,0 +1,6 @@
+---
+apiVersion: v2
+name: backup
+description: restic REST gateway in front of the Hetzner Storage Box (SFTP)
+type: application
+version: 0.1.0

@@ -1,0 +1,34 @@
+---
+# The restic REST gateway every K8up backup writes through. Not an upstream
+# chart: a local one, because nothing upstream fronts SFTP with the restic REST
+# API. See infrastructure/backup/README.md.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backup
+  namespace: argocd
+  annotations:
+    # After external-secrets (10), whose CRDs this renders; before applications
+    # (30), whose Schedules point at this gateway.
+    argocd.argoproj.io/sync-wave: "15"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: infra
+  source:
+    repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+    targetRevision: main
+    path: infrastructure/backup
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backup
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Namespaces are owned by namespaces/ (sync-wave -10).
+      - CreateNamespace=false

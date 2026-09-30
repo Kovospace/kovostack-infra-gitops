@@ -28,5 +28,10 @@ spec:
     namespace: argocd
   syncPolicy:
     automated:
-      prune: true
+      # TEMPORARILY false, for the handover to environments/applicationset.yaml.
+      # The next step removes the Application manifests from applications/;
+      # with prune on, this Application would delete them, and it must leave
+      # them for the ApplicationSet to adopt. Turned back on once every
+      # workload Application is owned by the ApplicationSet.
+      prune: false
       selfHeal: true

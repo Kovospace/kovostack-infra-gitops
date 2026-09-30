@@ -39,8 +39,11 @@ forgotten `name` fails the render (the chart requires it), and a forgotten
 `host` falls back to the chart's default — no Ingress — rather than to prod's.
 
 `name` must equal the Application name — `<app>` in prod, `<app>-<env>`
-elsewhere. The chart derives the namespace, the Infisical folder, the Secret and
-the Ingress from it.
+elsewhere. The chart derives the namespace, the Secret and the Ingress from it.
+The Infisical folder and environment are not taken from values at all: the
+ApplicationSet sets them (`/<app>`, Infisical env `<env>`), see
+`environments/README.md`. Do not write `secrets.path` or
+`secrets.infisical.environmentSlug` in a values file; it is overridden.
 
 Helm merges maps, so `env:` in `<env>.yaml` adds to and overrides the shared
 `env:` key by key. Lists (`initContainers`, `persistence`) are replaced
@@ -131,9 +134,8 @@ It writes these and stops there — no commit, no push, no cluster access:
 | `versions/myapp.yaml`, `versions/myapp-<env>.yaml` | `imageTag: change_me` — written by CI from then on |
 
 For a non-prod environment, the steps below are per environment: its own
-Infisical folder `/myapp-<env>` (or `secrets.path` /
-`secrets.infisical.environmentSlug` in `<env>.yaml` to read another one), its
-own database `myapp_db_<env>`, its own DNS name.
+secrets in folder `/myapp` of the Infisical environment `<env>`, its own
+database `myapp_db_<env>`, its own DNS name.
 
 ### The steps it cannot do
 

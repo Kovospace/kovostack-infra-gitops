@@ -1,0 +1,53 @@
+---
+# Values are nested under the dependency name.
+k8up:
+  k8up:
+    # Cron expressions in every Schedule are read in this zone, not the node's.
+    # Keep schedules out of 02:00–03:00: on DST change days that hour is
+    # skipped or runs twice.
+    timezone: Europe/Bratislava
+
+    # Upstream default, kept on purpose and written down because it decides
+    # what gets backed up: with `false`, a Schedule backs up EVERY
+    # ReadWriteOnce/ReadWriteMany PVC in its namespace unless the claim is
+    # annotated `k8up.io/backup: "false"`. Opt-out, so a newly added volume is
+    # never silently left out.
+    skipWithoutAnnotation: false
+
+    # Defaults for the Jobs K8up starts in app namespaces (backup, prune,
+    # check, restore). A Schedule can override them. Requests are small so a
+    # nightly backup never makes an app Pod unschedulable on this one VM; the
+    # memory limit is generous because restic's prune and check hold the whole
+    # repository index in memory, and an OOM-killed prune fails quietly.
+    globalResources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: ""
+        memory: 1Gi
+
+  # The namespace enforces the `restricted` Pod Security level
+  # (namespaces/k8up.yaml). The image already runs as 65532; these make that
+  # explicit, which `restricted` requires. They also apply to the chart's
+  # cleanup Job, which ArgoCD runs as a PostSync hook.
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    # Not readOnlyRootFilesystem: `restricted` does not require it, and the
+    # cleanup Job runs kubectl, which writes a discovery cache under $HOME.
+    capabilities:
+      drop:
+        - ALL
+
+  # No Prometheus in this cluster yet. The operator still serves metrics on
+  # the `k8up-metrics` Service (k8up_schedule_last_job_succeeded and friends);
+  # turn these on once something scrapes them. See infrastructure/k8up/README.md.
+  metrics:
+    serviceMonitor:
+      enabled: false
+    prometheusRule:
+      enabled: false

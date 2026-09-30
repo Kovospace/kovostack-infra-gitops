@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k8up
+  labels:
+    kubernetes.io/metadata.name: k8up
+    # The operator image runs as a non-root user (65532), and
+    # infrastructure/k8up/values.yaml sets the securityContext `restricted`
+    # requires. Backup Jobs do not run here — K8up starts them in each app's own
+    # namespace, next to the PVCs they read — so this label says nothing about
+    # them.
+    pod-security.kubernetes.io/enforce: restricted

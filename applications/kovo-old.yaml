@@ -15,7 +15,7 @@ spec:
 
     ### Základné Kubernetes resources
     - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
-      targetRevision: chart-app-1.3.0
+      targetRevision: chart-app-1.6.0
       path: charts/app
       helm:
         valueFiles:

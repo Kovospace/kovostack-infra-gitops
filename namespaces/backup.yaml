@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backup
+  labels:
+    kubernetes.io/metadata.name: backup
+    # Only the restic REST gateway lives here, and it runs as nobody with a
+    # read-only root filesystem — see infrastructure/backup/.
+    pod-security.kubernetes.io/enforce: restricted

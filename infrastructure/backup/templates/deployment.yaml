@@ -1,0 +1,140 @@
+{{- $g := .Values.gateway }}
+{{- $sb := $g.storageBox }}
+---
+# `rclone serve restic` speaking restic's REST protocol to the cluster and SFTP
+# to the Storage Box. K8up has no SFTP backend (local, s3, gcs, azure, swift,
+# b2, rest only), and a Storage Box has nothing but SFTP, hence this.
+#
+# NOT append-only, on purpose: K8up's prune has to delete through it for
+# retention to work. Protection against deletion or ransomware comes from the
+# Storage Box's own snapshots, which nothing in this cluster can touch.
+#
+# Stateless. Every repository is a directory `<path>/<app>/` on the box; the
+# Pod can be deleted at any time and loses nothing. An env var or Secret change
+# needs a new Pod to take effect — rclone reads both only at startup.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $g.name }}
+  labels:
+    app.kubernetes.io/name: {{ $g.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $g.name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $g.name }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        # The image runs as root by default; nothing here needs it.
+        runAsUser: 65534
+        runAsGroup: 65534
+        # Makes the mounted key readable by 65534 under defaultMode 0440.
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: rclone
+          image: "{{ $g.image }}:{{ $g.tag }}"
+          args:
+            - serve
+            - restic
+            - "storagebox:{{ $sb.path }}"
+            - --addr
+            - ":{{ $g.port }}"
+          env:
+            # No config file at all: the remote is defined entirely by
+            # RCLONE_CONFIG_<REMOTE>_<OPTION> variables below.
+            - name: RCLONE_CONFIG
+              value: /dev/null
+            - name: HOME
+              value: /tmp
+            - name: RCLONE_CACHE_DIR
+              value: /tmp/rclone
+            - name: RCLONE_CONFIG_STORAGEBOX_TYPE
+              value: sftp
+            - name: RCLONE_CONFIG_STORAGEBOX_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $g.name }}
+                  key: STORAGEBOX_HOST
+            - name: RCLONE_CONFIG_STORAGEBOX_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $g.name }}
+                  key: STORAGEBOX_USER
+            - name: RCLONE_CONFIG_STORAGEBOX_PORT
+              value: {{ $sb.port | quote }}
+            - name: RCLONE_CONFIG_STORAGEBOX_KEY_FILE
+              value: /etc/storagebox/id
+            # Host key pinned, never skipped. rclone refuses to start on a
+            # mismatch ("knownhosts: key mismatch"), so a wrong or missing line
+            # shows up as a crash-looping Pod, not as backups sent elsewhere.
+            - name: RCLONE_CONFIG_STORAGEBOX_KNOWN_HOSTS_FILE
+              value: /etc/storagebox/known_hosts
+            - name: RCLONE_CONFIG_STORAGEBOX_HOST_KEY_ALGORITHMS
+              value: {{ $sb.hostKeyAlgorithms | quote }}
+            - name: RCLONE_CONFIG_STORAGEBOX_CONNECTIONS
+              value: {{ $sb.connections | quote }}
+            # HTTP basic auth via rclone's own --user/--pass (as RCLONE_USER
+            # and RCLONE_PASS) rather than an htpasswd file. It is the same
+            # basic auth on the wire, but a bcrypt htpasswd costs a bcrypt
+            # verification on every request, and restic makes thousands per
+            # backup on a VM with little CPU to spare.
+            - name: RCLONE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $g.name }}
+                  key: RESTIC_REST_USERNAME
+            - name: RCLONE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $g.name }}
+                  key: RESTIC_REST_PASSWORD
+          ports:
+            - name: http
+              containerPort: {{ $g.port }}
+          # TCP, not HTTP: every path answers 401 without credentials. rclone
+          # connects to the box before it listens, so an open port already
+          # means the SSH key and host key were accepted.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml $g.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: storagebox
+              mountPath: /etc/storagebox
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: storagebox
+          secret:
+            secretName: {{ $g.name }}
+            defaultMode: 0440
+            items:
+              - key: STORAGEBOX_SSH_PRIVATE_KEY
+                path: id
+              - key: STORAGEBOX_KNOWN_HOSTS
+                path: known_hosts
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

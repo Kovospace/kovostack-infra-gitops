@@ -1,0 +1,34 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: k8up
+  namespace: argocd
+  annotations:
+    # Before applications (30): an app that renders a K8up Schedule is rejected
+    # until the k8up.io CRDs exist. After external-secrets (10) only for
+    # symmetry with backup, which does need it.
+    argocd.argoproj.io/sync-wave: "15"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: infra
+  source:
+    repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+    targetRevision: main
+    path: infrastructure/k8up
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: k8up
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Namespaces are owned by namespaces/ (sync-wave -10).
+      - CreateNamespace=false
+      # CRDs are large; skip the client-side annotation size limit.
+      - ServerSideApply=true

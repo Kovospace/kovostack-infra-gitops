@@ -14,6 +14,8 @@ infrastructure/     cluster components as umbrella Helm charts
   cert-manager/
   external-secrets/
   traefik/
+  k8up/             backup operator
+  backup/           restic REST gateway → Hetzner Storage Box
 namespaces/         Namespace manifests, synced before everything else
 applications/       one Application per workload + its values
 versions/           image tags, written by CI
@@ -53,6 +55,7 @@ clusters/production/*.yaml          ← Application per component, sync-waved
         ├─► infrastructure/argocd/            wave  0
         ├─► infrastructure/cert-manager/      wave 10
         ├─► infrastructure/external-secrets/  wave 10
+        ├─► infrastructure/k8up/, backup/     wave 15
         ├─► infrastructure/traefik/           wave 20
         └─► applications/*.yaml               wave 30
 ```

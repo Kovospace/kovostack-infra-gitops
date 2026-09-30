@@ -1,0 +1,5 @@
+---
+# kovo-old in prod — see environments/README.md for the keys.
+chartRevision: chart-app-1.3.0
+envValuesFile: false
+initTagsFile: false

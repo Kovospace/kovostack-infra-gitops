@@ -1,0 +1,132 @@
+---
+# Every workload on the cluster, in every environment, comes from here.
+#
+#   environments/<env>/<app>.yaml   one file = one Application
+#
+# The directory is the environment and the file name is the app; the file itself
+# carries only what the template cannot derive (see environments/README.md):
+#
+#   chartRevision: chart-app-1.5.0   the chart pin — the promotion gate
+#   envValuesFile: true              applications/<app>/<env>.yaml exists
+#   initTagsFile: false              versions/<name>-init.yaml exists
+#
+# Adding an app to an environment is one file there. Adding an environment is a
+# new directory (plus its `applications-<env>` AppProject); nothing in this file
+# changes for either.
+#
+# Naming, derived from the path:
+#
+#   env      prod                       any other, e.g. dev
+#   name     <app>                      <app>-<env>
+#   project  applications               applications-<env>
+#
+# `name` is the Application, its namespace, and must equal `name` in the app's
+# values — the chart derives the Namespace, the Infisical folder, the Secret and
+# the Ingress from that. prod keeps the bare name so the Applications that
+# existed before this file were adopted in place rather than recreated.
+#
+# Applied by clusters/production/applications.yaml (project `infra`, wave 30),
+# which reads only this file from environments/ — the env subdirectories are
+# generator input, not manifests.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workloads
+  namespace: argocd
+  # With this finalizer the controller sees the ApplicationSet being deleted and,
+  # because the policy below does not allow deletes, strips its ownerReferences
+  # from every generated Application before letting go. Without it, Kubernetes
+  # garbage collection would delete them all along with the ApplicationSet.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  goTemplate: true
+  # A key an environment file forgot is a failed render, not an empty string
+  # silently written into the Application.
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    - git:
+        repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+        revision: main
+        files:
+          # Exactly two levels: `*` does not cross `/` because new globbing is
+          # on (infrastructure/argocd/values.yaml). This file, one level up, is
+          # not matched.
+          - path: environments/*/*.yaml
+
+  syncPolicy:
+    # Generated Applications get NO resources finalizer. Deleting one — by hand,
+    # or by garbage collection — orphans its Deployment, PVCs and Namespace
+    # instead of deleting them. Recreating the Application adopts them again.
+    preserveResourcesOnDeletion: true
+    # Create and update, never delete. A renamed or removed environment file
+    # leaves its Application running; retiring an app is a deliberate
+    # `kubectl -n argocd delete application <name>`. Honoured because
+    # applicationsetcontroller.enable.policy.override is on; the controller-wide
+    # policy is create-update as well, so removing this line changes nothing.
+    applicationsSync: create-update
+
+  template:
+    metadata:
+      name: '{{ trimSuffix ".yaml" .path.filename }}{{ if ne .path.basename "prod" }}-{{ .path.basename }}{{ end }}'
+      namespace: argocd
+      labels:
+        # For `argocd app list -l environment=dev` and the UI's label filter.
+        environment: '{{ .path.basename }}'
+    spec:
+      project: 'applications{{ if ne .path.basename "prod" }}-{{ .path.basename }}{{ end }}'
+      destination:
+        server: https://kubernetes.default.svc
+        # Must match `name` in the values — the chart renders the Namespace, so
+        # CreateNamespace stays off. Same for every environment.
+        namespace: '{{ trimSuffix ".yaml" .path.filename }}{{ if ne .path.basename "prod" }}-{{ .path.basename }}{{ end }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
+
+  # The sources are a patch rather than part of `template` because the value
+  # files are conditional, and only a patch can template a list.
+  templatePatch: |
+    {{- $app := trimSuffix ".yaml" .path.filename }}
+    {{- $env := .path.basename }}
+    {{- $name := $app }}
+    {{- if ne $env "prod" }}{{ $name = printf "%s-%s" $app $env }}{{ end }}
+    spec:
+      sources:
+        ### Základné Kubernetes resources
+        # Pinned per app *and* per environment — this is the promotion gate. A
+        # chart change reaches dev by bumping environments/dev/<app>.yaml, and
+        # prod only when environments/prod/<app>.yaml is bumped after it.
+        - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
+          targetRevision: {{ .chartRevision | quote }}
+          path: charts/app
+          helm:
+            # Order matters — later files win.
+            #   values.yaml     shared by every environment, edited by humans
+            #   <env>.yaml      this environment only, edited by humans
+            #   versions/...    image tags, written by CI — keyed by the
+            #                   Application name, so prod's paths are unchanged
+            #                   and dev's are versions/<app>-dev(-init).yaml
+            # Conditional on the environment file rather than
+            # ignoreMissingValueFiles, which would also swallow a missing
+            # versions file and deploy the chart's default tag without a word.
+            valueFiles:
+              - $values/applications/{{ $app }}/values.yaml
+              {{- if .envValuesFile }}
+              - $values/applications/{{ $app }}/{{ $env }}.yaml
+              {{- end }}
+              - $values/versions/{{ $name }}.yaml
+              {{- if .initTagsFile }}
+              - $values/versions/{{ $name }}-init.yaml
+              {{- end }}
+
+        ### Pointer na referencovaný values.yaml
+        # Stays on main so config and image-tag changes apply immediately; only
+        # the chart above is pinned.
+        - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+          targetRevision: main
+          ref: values

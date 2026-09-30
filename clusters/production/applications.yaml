@@ -1,6 +1,9 @@
 ---
-# Second-level app-of-apps: every Application manifest dropped into
-# applications/ is picked up automatically once infrastructure is up.
+# Applies the ApplicationSet that generates every workload Application, in
+# every environment, from environments/<env>/<app>.yaml. Kept as its own
+# Application (rather than dropping the ApplicationSet into clusters/production)
+# so it keeps wave 30 — workloads after the infrastructure they need — and so
+# the Applications it replaced were adopted by name, not deleted and recreated.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -15,14 +18,13 @@ spec:
   source:
     repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
     targetRevision: main
-    path: applications
+    path: environments
     directory:
-      # NOT recursive, deliberately. Application manifests live at
-      # applications/*.yaml; each app's values live in applications/<app>/ and
-      # are pulled in by the Application itself via the $values source ref.
-      # Recursing would try to apply those values.yaml files as manifests.
+      # That one file and nothing else. environments/<env>/<app>.yaml are the
+      # ApplicationSet's generator input, not Kubernetes objects; applying them
+      # would fail on every sync.
       recurse: false
-      include: '*.yaml'
+      include: 'applicationset.yaml'
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

@@ -9,6 +9,7 @@
 #   chartRevision: chart-app-1.5.0   the chart pin — the promotion gate
 #   envValuesFile: true              applications/<app>/<env>.yaml exists
 #   initTagsFile: false              versions/<name>-init.yaml exists
+#   infisicalEnv: prod               optional — Infisical environment, if not <env>
 #
 # Adding an app to an environment is one file there. Adding an environment is a
 # new directory (plus its `applications-<env>` AppProject); nothing in this file
@@ -90,11 +91,32 @@ spec:
 
   # The sources are a patch rather than part of `template` because the value
   # files are conditional, and only a patch can template a list.
+  #
+  # It also validates the environment file, because a mistake there must fail
+  # the render rather than quietly pick a default. Note the blast radius of a
+  # failed render: the controller then updates *no* Application from this
+  # ApplicationSet until it is fixed (nothing is deleted either — the running
+  # Applications stay as they were). Check the ApplicationSet's conditions
+  # after editing a file here.
   templatePatch: |
     {{- $app := trimSuffix ".yaml" .path.filename }}
     {{- $env := .path.basename }}
+    {{- $where := printf "environments/%s/%s" $env .path.filename }}
     {{- $name := $app }}
     {{- if ne $env "prod" }}{{ $name = printf "%s-%s" $app $env }}{{ end }}
+    {{- /* The whole schema. `path` is added by the generator itself. */}}
+    {{- $known := list "path" "values" "chartRevision" "envValuesFile" "initTagsFile" "infisicalEnv" }}
+    {{- range $key, $_ := . }}
+    {{- if not (has $key $known) }}{{ fail (printf "%s: unknown key %q (known: chartRevision, envValuesFile, initTagsFile, infisicalEnv)" $where $key) }}{{ end }}
+    {{- end }}
+    {{- if not (kindIs "bool" .envValuesFile) }}{{ fail (printf "%s: envValuesFile must be true or false, unquoted" $where) }}{{ end }}
+    {{- if not (kindIs "bool" .initTagsFile) }}{{ fail (printf "%s: initTagsFile must be true or false, unquoted" $where) }}{{ end }}
+    {{- /* Infisical environment: the env directory's name unless the file
+           overrides it. Optional on purpose — deleting the line is how an
+           environment moves to its own Infisical environment. */}}
+    {{- $infisicalEnv := $env }}
+    {{- if hasKey . "infisicalEnv" }}{{ $infisicalEnv = .infisicalEnv }}{{ end }}
+    {{- if not (and (kindIs "string" $infisicalEnv) (regexMatch "^[a-z0-9-]+$" $infisicalEnv)) }}{{ fail (printf "%s: infisicalEnv must be an Infisical environment slug" $where) }}{{ end }}
     spec:
       sources:
         ### Základné Kubernetes resources
@@ -123,6 +145,20 @@ spec:
               {{- if .initTagsFile }}
               - $values/versions/{{ $name }}-init.yaml
               {{- end }}
+            # Where the app's secrets come from, decided here for every app in
+            # every environment: folder /<app> — the base name, so dev reads the
+            # same folder as prod — in the Infisical environment named after
+            # the env directory (or the file's infisicalEnv). Parameters beat
+            # every values file, so no values file can point an app at another
+            # app's folder or environment. Harmless for apps with
+            # `secrets.enabled: false`: the chart renders no store for them.
+            parameters:
+              - name: secrets.path
+                value: /{{ $app }}
+                forceString: true
+              - name: secrets.infisical.environmentSlug
+                value: {{ $infisicalEnv }}
+                forceString: true
 
         ### Pointer na referencovaný values.yaml
         # Stays on main so config and image-tag changes apply immediately; only

@@ -2,30 +2,17 @@
 # new-tab-links-frontend — dev only. Loaded after values.yaml, so these win.
 # Application, namespace and chart name: new-tab-links-frontend-dev.
 
-# Namespace, Secret and Ingress all derive from this (the Infisical folder
-# would too, but `secrets.path` below overrides it). Must equal the Application
-# name.
+# Namespace, Secret and Ingress all derive from this (not the Infisical folder:
+# the ApplicationSet sets that to /new-tab-links-frontend). Must equal the
+# Application name.
 name: new-tab-links-frontend-dev
 
 replicas: 1
 
-# Secrets: prod's Infisical folder, prod environment — deliberately, for now.
-# There is no /new-tab-links-frontend-dev folder. The chart would otherwise
-# derive /<name> (= /new-tab-links-frontend-dev) from `name` above; `path` pins
-# it to prod's folder instead. Only the lookup is shared: the synced Secret is
-# still new-tab-links-frontend-dev-secrets in the dev namespace, read through
-# its own ClusterSecretStore infisical-new-tab-links-frontend-dev.
-#
-# The later switch to real dev secrets: keep `path` exactly as it is, change
-# `environmentSlug` to `dev`, fill /new-tab-links-frontend in Infisical's *dev*
-# environment, and make sure the machine identity behind the
-# infisical-credentials Secret (external-secrets namespace) can read the dev
-# environment — otherwise the ExternalSecret fails and the pods stop at
-# CreateContainerConfigError.
-secrets:
-  path: /new-tab-links-frontend
-  infisical:
-    environmentSlug: prod
+# Secrets: no `secrets` block here, on purpose. The ApplicationSet sets the
+# Infisical folder (/new-tab-links-frontend, the same as prod's) and environment for
+# every app; which Infisical environment dev reads is `infisicalEnv` in
+# environments/dev/new-tab-links-frontend.yaml.
 
 # Nastavenie domény — pokryté wildcardom *.matejkovac.sk, certifikát per host
 # cez HTTP-01. Konvencia pre dev: subdomény dev.matejkovac.sk.

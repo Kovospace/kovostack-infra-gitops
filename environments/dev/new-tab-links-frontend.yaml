@@ -5,3 +5,9 @@
 chartRevision: chart-app-1.4.1
 envValuesFile: true
 initTagsFile: false
+# Infisical environment `prod`, not `dev`: dev reads prod's secrets for now,
+# deliberately — Infisical's dev environment is not populated yet. Once it is
+# (same folder, /new-tab-links-frontend, and readable by the machine identity in
+# the infisical-credentials Secret), delete this line and dev reads Infisical
+# `dev`, named after this directory.
+infisicalEnv: prod

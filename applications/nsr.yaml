@@ -4,8 +4,9 @@ kind: Application
 metadata:
   name: nsr
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
+  # No resources finalizer: this manifest is about to be handed over to the
+  # ApplicationSet in environments/, and deleting the Application during that
+  # handover must orphan the workload, not delete it.
 
 spec:
 

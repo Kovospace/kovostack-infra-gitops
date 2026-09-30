@@ -22,6 +22,18 @@ env:
 secrets:
   enabled: false
 
+# Nightly K8up backup to the Storage Box (charts/app README, "Backups").
+# Both volumes are backed up file by file; the live SQLite file is left out of
+# that and dumped consistently with VACUUM INTO instead. Schedule and retention
+# are the chart defaults.
+backup:
+  enabled: true
+  sqlite:
+    files:
+      # Rails production DB: config/database.yml `db/databases/production.sqlite3`,
+      # relative to WORKDIR /var/app. No DATABASE_URL at runtime overrides it.
+      - /var/app/db/databases/production.sqlite3
+
 resources:
   requests:
     cpu: 250m

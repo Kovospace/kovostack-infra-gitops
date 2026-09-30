@@ -1,24 +1,22 @@
 ---
-name: new-tab-links-backend
+# Shared by every environment. Anything that differs per environment — name,
+# host, replicas, JWT issuer, database URLs, web base URL, CORS/websocket
+# origins — lives in prod.yaml / dev.yaml next to this file, and must NOT be
+# added back here: an environment whose file forgot the key would silently
+# inherit prod's.
 image: new-tab-links-backend
 initContainers:
   - name: migrations
     image: new-tab-links-migrations
 
-# Two pods: a crash or a rollout no longer takes the API down. Safe because
-# nothing a request depends on lives in a pod - OAuth sign-in state is a sealed
-# cookie, websocket refresh hints reach every pod through Postgres NOTIFY, and
-# the admin lockout is a table (migrations V13). Still one node, so this does
-# not survive the VM going down.
-replicas: 2
-
+# replicas: per environment (prod.yaml / dev.yaml).
 
 # Nastavenie domény
 # Spring Boot listens on 8080 (`server.port` defaults to 8080, chart default is
 # the same). The Service and both probes target this port, so it has to match
 # what the process actually binds — 4000 pointed them at nothing.
 containerPort: 8080
-host: api.tabilinks.app
+# host: per environment (prod.yaml / dev.yaml).
 
 # Probes render only when this is set. Actuator exposes health,info by default
 # and has probes enabled, so /actuator/health answers from start-up.
@@ -46,17 +44,16 @@ env:
   # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${...} # presunuté do vault
   # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${...} # presunuté do vault
   SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE: openid,email,profile
-  NEWTABLINKS_AUTH_JWT_ISSUER: https://api.tabilinks.app
+  # NEWTABLINKS_AUTH_JWT_ISSUER: per environment (prod.yaml / dev.yaml)
 
   ### Database settings
   # SPRING_DATASOURCE_USERNAME: ${DB_USER} # presunuté do vault
   # SPRING_DATASOURCE_PASSWORD: ${DB_USER_PASSWORD} # presunuté do vault
-  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/newtablinks
+  # SPRING_DATASOURCE_URL a FLYWAY_URL: per environment (prod.yaml / dev.yaml)
   # Schéma patrí migračnému init containeru (Flyway); Hibernate ju smie iba overiť.
   # Bez tejto premennej beží aplikácia s ddl-auto=update a ticho prepisuje
   # to, čo Flyway namigroval.
   SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-  FLYWAY_URL: jdbc:postgresql://postgres:5432/newtablinks
   FLYWAY_CONNECT_RETRIES: 5
   FLYWAY_CONNECT_RETRIES_INTERVAL: 5
   # FLYWAY_USER a FLYWAY_PASSWORD sú vo vaulte — init container dedí ten istý
@@ -77,9 +74,7 @@ env:
   SPRING_MAIL_SMTP_STARTTLS: true
 
   ### Frontend redirects settings
-  # Základ odkazov v aktivačnom a reset-password maile. Prázdna hodnota tu
-  # prebije default z application.properties a maily vedú nikam.
-  NEWTABLINKS_WEB_BASE_URL: https://tabilinks.app
+  # NEWTABLINKS_WEB_BASE_URL: per environment (prod.yaml / dev.yaml)
   # Cesty sedia s routami Angular stránky (application-route-paths.ts).
   NEWTABLINKS_WEB_ACTIVATION_PATH: /activate
   NEWTABLINKS_WEB_OAUTH_CALLBACK_PATH: /auth/callback
@@ -114,11 +109,9 @@ env:
   # ADMIN_TOKEN_LIFETIME: PT30M
 
   ### CORS a websocket
-  # Prehliadačové originy. Web aj rozšírenie volajú REST API...
-  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://tabilinks.app,chrome-extension://*
-  # ...a web si na to isté API otvára aj STOMP websocket, takže default
-  # (iba chrome-extension://*) mu nestačí.
-  NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: https://tabilinks.app,chrome-extension://*
+  # NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS a
+  # NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: per environment — each must
+  # list that environment's website host (prod.yaml / dev.yaml).
 
 resources:
   requests:

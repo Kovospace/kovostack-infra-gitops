@@ -1,5 +1,8 @@
 ---
-name: new-tab-links-frontend
+# Shared by every environment. Anything that differs per environment — name,
+# host, wwwAlias, the backend's address — lives in prod.yaml / dev.yaml next to
+# this file, and must NOT be added back here: an environment whose file forgot
+# the key would silently inherit prod's.
 image: new-tab-links-frontend
 # imageTag lives in versions/new-tab-links-frontend.yaml — written by CI, loaded after this
 # file. Setting it here too would create a second source of truth that always
@@ -8,8 +11,7 @@ image: new-tab-links-frontend
 # Nastavenie domény
 # The image serves the built site with nginx on 8080 — 5173 is only the dev server.
 containerPort: 8080
-host: tabilinks.app
-wwwAlias: true
+# host, wwwAlias: per environment (prod.yaml / dev.yaml).
 
 # Probes render only when this is set; the image answers /healthz.
 healthPath: /healthz
@@ -21,9 +23,8 @@ healthPath: /healthz
 # start-up and the app fetches it before booting. Every value here is served to
 # the visitor's browser in plain text — nothing sensitive may go in.
 env:
-  # Resolved by the visitor's browser, so it must be the public address —
-  # a cluster-internal service name would not work.
-  NEWTABLINKS_BACKEND_BASE_URL: https://api.tabilinks.app
+  # NEWTABLINKS_BACKEND_BASE_URL: per environment (prod.yaml / dev.yaml) —
+  # the backend's public address in the same environment.
   NEWTABLINKS_WEB_CLIENT_DEVICE_NAME: "NewTabLinks website"
   # Shared, non-secret key that admits the website to the backend's
   # username-existence endpoint. It ships inside the public JS bundle, so it

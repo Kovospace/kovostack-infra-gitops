@@ -93,18 +93,31 @@ namespace, because the gateway only ever handles ciphertext.
 ## First-time setup (manual, outside git)
 
 1. **Sub-account.** Hetzner Console → Storage Box → *Sub-accounts* → create one.
-   Set its base directory to a dedicated one, e.g. `/kovostack`. Enable **SSH**
-   (SFTP) for it. Leave Samba, WebDAV and external reachability off unless
-   something else needs them. Note the username `uXXXXXX-subN`; its hostname is
-   `uXXXXXX-subN.your-storagebox.de`. Activation can take a few minutes.
+   Set its base directory to a dedicated one, e.g. `/kovostack`. Two settings
+   **must both be on**:
+   - **SSH support**, which also enables SFTP;
+   - **External reachability.** Without it the sub-account only accepts logins
+     from inside Hetzner's network. The VM (Netcup) and your laptop are both
+     outside it, so every login is refused with `Permission denied`, even with
+     the correct password.
+
+   Samba and WebDAV can stay off. Note the username `uXXXXXX-subN`; its hostname
+   is `uXXXXXX-subN.your-storagebox.de`. Any change to these settings takes a
+   few minutes to become active, so a `Permission denied` straight after saving
+   may just be the delay.
 2. **Key pair** (on your machine, no passphrase — the Pod cannot type one):
    ```bash
    ssh-keygen -t ed25519 -N '' -C restic-gateway -f storagebox-restic
-   cat storagebox-restic.pub | ssh -p 23 uXXXXXX-subN@uXXXXXX-subN.your-storagebox.de install-ssh-key
+   cat storagebox-restic.pub | ssh -p 23 \
+     -o PubkeyAuthentication=no -o PreferredAuthentications=password \
+     uXXXXXX-subN@uXXXXXX-subN.your-storagebox.de install-ssh-key
    ```
-   `install-ssh-key` asks for the sub-account password once and adds the key
-   without overwriting existing ones. Check it with
-   `sftp -P 23 -i storagebox-restic uXXXXXX-subN@uXXXXXX-subN.your-storagebox.de`.
+   The trailing `install-ssh-key` is a command run on the box, and it is
+   required. Without it, ssh just tries to open a shell. It asks for the
+   sub-account password once and adds the key without overwriting existing
+   ones. The two `-o` options force the password prompt; see troubleshooting
+   below. Check the key with
+   `sftp -P 23 -o IdentitiesOnly=yes -i storagebox-restic uXXXXXX-subN@uXXXXXX-subN.your-storagebox.de`.
    Then create the repository root there: `mkdir restic`. rclone would create
    it on its own, but checking now proves the write path.
 3. **Host key.**
@@ -126,6 +139,21 @@ namespace, because the gateway only ever handles ciphertext.
    included.
 6. Then shred the local private key, or keep it in a password manager. It is in
    Infisical now.
+
+## Troubleshooting the Storage Box login
+
+- **`Permission denied` with the right password:** external reachability is off
+  on the sub-account, SSH support is off, or a change was saved less than a few
+  minutes ago. See step 1.
+- **`Too many authentication failures` on port 23:** your SSH client offered
+  every key in its agent and `~/.ssh` before it got to the password prompt, and
+  the server gave up. For the one-time `install-ssh-key` step, add
+  `-o PubkeyAuthentication=no -o PreferredAuthentications=password`. When
+  testing the new key, add `-o IdentitiesOnly=yes -i storagebox-restic` so it
+  is the only key offered.
+- **Port 22 disconnects immediately:** normal. Port 22 is SFTP-only and closes
+  interactive shell sessions. Use port 23 for `ssh … install-ssh-key`; the
+  gateway uses 23 as well.
 
 ## Checking it works
 

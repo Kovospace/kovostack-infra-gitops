@@ -22,11 +22,16 @@ so the common case is one keypress. "Other" covers free text.
 
 | Ask | Offer as options | Becomes |
 |---|---|---|
-| **Name** — also the prod namespace, Infisical folder, Secret and TLS Secret | — (free text; skip the question if given) | `--name` |
+| **Name** — also the prod namespace, the Infisical folder (every env), Secret and TLS Secret | — (free text; skip the question if given) | `--name` |
 | **Environments** | prod only (default) · prod and dev · dev only | `--env prod` / `--env prod --env dev` / `--env dev` |
 | **Postgres?** | No · Yes, database `<name with - as _>` | `--postgres <db>` / `--no-postgres` |
 | **Ingress host** (prod's) | `<name>.matejkovac.sk` · `api.<name>.matejkovac.sk` · No public route | `--host` / omit |
 | **External secrets?** | Yes, sync Infisical `/<name>` (default) · No | omit / `--no-secrets` |
+
+Secrets always come from folder `/<name>`, in the Infisical environment named
+after the env directory (`prod`, `dev`) — the ApplicationSet sets both, so
+nothing about them is written into values files. An environment file can read
+another Infisical environment with `infisicalEnv:`; the script never writes it.
 | **Container port** | 8080 · 3000 · 4000 | `--port` |
 
 For a non-prod environment the host defaults to `<name>.<env>.matejkovac.sk`
@@ -83,7 +88,8 @@ described in `environments/README.md`.
 
 ## 3. Report
 
-Relay the numbered manual steps the script printed — Infisical folder(s),
+Relay the numbered manual steps the script printed — Infisical folder per
+Infisical environment,
 database(s), DNS, first image build — they are the part that cannot be
 automated, and the app will not start without them.
 

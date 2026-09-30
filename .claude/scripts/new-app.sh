@@ -280,8 +280,9 @@ cat <<YAML
 ---
 # ${name} — ${e} only. Loaded after values.yaml, so these win.
 
-# Namespace, Infisical folder (/${a}), Secret and Ingress all derive from
-# this. Must equal the Application name.
+# Namespace, Secret and Ingress all derive from this. Must equal the
+# Application name. (Not the Infisical folder: the ApplicationSet reads
+# /${name} in Infisical environment '${e}'.)
 name: ${a}
 
 # Nastavenie domény
@@ -325,13 +326,16 @@ printf 'Before this can go to main:\n'
 for e in "${envs[@]}"; do
   a=$(app_name "$e")
   if [[ $secrets == true ]]; then
-    next "[${e}] Create the Infisical folder /${a} and put the app's secrets in it.
-   They arrive as env vars automatically — adding one later needs no commit."
+    next "[${e}] Create the Infisical folder /${name} in Infisical environment
+   '${e}' and put the app's secrets in it. The ApplicationSet always reads
+   /${name}, in the Infisical environment named after the env directory
+   (an env file may override that with infisicalEnv). They arrive as env
+   vars automatically — adding one later needs no commit."
   fi
   if [[ -n $db ]]; then
     next "[${e}] Create the database on the VM's Postgres, and a user with rights on it:
      createdb -h <vm> -U postgres $(db_for "$e")
-   Put that user and password in Infisical /${a}."
+   Put that user and password in Infisical /${name}, environment '${e}'."
   fi
   if [[ -n ${hosts[$e]} ]]; then
     next "[${e}] Point DNS for ${hosts[$e]} at the VM (*.matejkovac.sk is already a

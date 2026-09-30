@@ -24,10 +24,14 @@ secrets:
 
 # Nightly K8up backup to the Storage Box (charts/app README, "Backups").
 # Both volumes are backed up file by file; the live SQLite file is left out of
-# that and dumped consistently with VACUUM INTO instead. Schedule and retention
-# are the chart defaults.
+# that and dumped consistently with VACUUM INTO instead. Retention and the
+# check/prune slots are the chart defaults.
 backup:
   enabled: true
+  schedule:
+    # Evenings, Europe/Bratislava. Check and prune keep their derived night
+    # slots (04:xx–08:xx), well clear of this.
+    backup: "45 20 * * *"
   sqlite:
     files:
       # Rails production DB: config/database.yml `db/databases/production.sqlite3`,

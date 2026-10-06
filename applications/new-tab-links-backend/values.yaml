@@ -115,10 +115,12 @@ env:
 
   ### CORS a websocket
   # Prehliadačové originy. Web aj rozšírenie volajú REST API...
-  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://tabilinks.app,chrome-extension://*
+  # Rozšírenie beží v Chrome (chrome-extension://*) aj vo Firefoxe
+  # (moz-extension://<uuid>, uuid je iné pre každú inštaláciu, preto wildcard).
+  NEWTABLINKS_SECURITY_ALLOWED_CORS_ORIGINS: https://tabilinks.app,chrome-extension://*,moz-extension://*
   # ...a web si na to isté API otvára aj STOMP websocket, takže default
-  # (iba chrome-extension://*) mu nestačí.
-  NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: https://tabilinks.app,chrome-extension://*
+  # (iba chrome-extension://*) mu nestačí; Firefox rozšírenie potrebuje moz-extension://*.
+  NEWTABLINKS_WEBSOCKET_ALLOWED_ORIGIN_PATTERNS: https://tabilinks.app,chrome-extension://*,moz-extension://*
 
 resources:
   requests:

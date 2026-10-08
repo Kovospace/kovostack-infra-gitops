@@ -33,7 +33,7 @@ env:
 
   # Empty shows "not published yet" instead of a dead link — fill in once the
   # extension is listed.
-  NEWTABLINKS_CHROME_WEB_STORE_URL: ""
+  NEWTABLINKS_CHROME_WEB_STORE_URL: "https://chromewebstore.google.com/detail/ndfngpenokedeiflgmfflgpcfnjnokbl"
   NEWTABLINKS_SELF_HOSTED_CRX_PATH: /downloads/newtablinks.crx
 
 resources:

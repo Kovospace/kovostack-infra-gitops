@@ -33,6 +33,7 @@ env:
   # PAYLOAD_SECRET: "" # Moved into vault
   NEXT_PUBLIC_SERVER_URL: https://kovo.space
   ALLOWED_ORIGINS: https://www.kovo.space,https://kovo.space
+  FLYWAY_URL: jdbc:postgresql://postgres:5432/kovospace
 
 resources:
   requests:

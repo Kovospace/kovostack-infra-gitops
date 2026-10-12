@@ -29,6 +29,7 @@ spec:
         valueFiles:
           - $values/applications/kovo/values.yaml
           - $values/versions/kovo.yaml
+          - $values/versions/kovo-init.yaml
 
     ### Pointer na referencovaý values.yaml
     # Stays on main so config and image-tag changes apply immediately; only the

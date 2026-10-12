@@ -1,6 +1,9 @@
 ---
 name: kovo
 image: kovospace-frontend
+initContainers:
+  - name: migrations
+    image: kovospace-migrations
 
 # Nastavenie domény
 containerPort: 3000

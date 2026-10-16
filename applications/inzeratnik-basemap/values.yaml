@@ -1,0 +1,36 @@
+---
+name: inzeratnik-basemap
+image: registry.matejkovac.sk/apps/inzeratnik-basemap
+# imageTag lives in versions/inzeratnik-basemap.yaml — written by CI, loaded after this
+# file. Setting it here too would create a second source of truth that always
+# loses.
+
+# Nastavenie domény
+containerPort: 8080
+# Public: the extension's map page (and later the website) reads the basemap from here.
+# Needs the DNS record maps.inzeratnik.app → the cluster before the certificate can be issued.
+host: maps.inzeratnik.app
+
+# Bez external-secrets: nesynchronizuje sa žiadny inzeratnik-basemap-secrets.
+# Public static files; nothing secret. Pulling from the private registry still works:
+# that credential is a separate Secret and is not switched off here.
+secrets:
+  enabled: false
+
+# Volumes
+# nie sú
+
+env: {}
+
+# Basemap of inzeratnik.app (image built monthly by Kovospace/inzeratnik-backend-maps, workflow
+# "Basemap (PMTiles + style)"): nginx serving inzeratnik.pmtiles (1.27 GB, read by MapLibre in HTTP range
+# requests), style.json, sprites and glyphs, with CORS for the extension's origin. nginx streams the file
+# from disk – the page cache holds the hot tiles, the process itself needs little memory.
+healthPath: /healthz
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    memory: 128Mi

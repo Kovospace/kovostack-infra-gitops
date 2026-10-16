@@ -1,0 +1,4 @@
+# Written by the app's build pipeline from here on — see versions/README.md.
+# First tag set by hand: the tag of the first run of the basemap workflow of Kovospace/inzeratnik-backend-maps,
+# started on the day this app was added (its deploy step skips until this app is in the repository).
+imageTag: "basemap-2026-10-17"

@@ -1,0 +1,37 @@
+---
+name: inzeratnik-valhalla
+image: registry.matejkovac.sk/apps/inzeratnik-valhalla
+# imageTag lives in versions/inzeratnik-valhalla.yaml — written by CI, loaded after this
+# file. Setting it here too would create a second source of truth that always
+# loses.
+
+# Nastavenie domény
+containerPort: 8002
+# No public route — no Ingress and no certificate are rendered.
+host: ""
+
+# Bez external-secrets: nesynchronizuje sa žiadny inzeratnik-valhalla-secrets.
+# The app gets no env vars from Infisical — everything it needs must be in
+# `env:` below, in git. Note that pulling from the private registry still
+# works: that credential is a separate Secret and is not switched off here.
+secrets:
+  enabled: false
+
+# Volumes
+# nie sú
+
+# Plain, non-sensitive settings only. Anything secret belongs in Infisical.
+env: {}
+
+# Valhalla routing engine of inzeratnik.app (image built by Kovospace/inzeratnik-backend-maps, workflow
+# "Routing image"): fastest + shortest car routes for CZ + SK + 25 km. Reached only inside the cluster –
+# the inzeratnik backend proxies and rate-limits it (no Ingress). The 1.4 GB tiles.tar is memory-mapped:
+# the page cache holds what is used, so 1–2 GiB is the budget (Analysis/00, "Routing service").
+healthPath: /status
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    memory: 2Gi

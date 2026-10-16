@@ -1,0 +1,4 @@
+# Written by the app's build pipeline from here on — see versions/README.md.
+# First tag set by hand: the routing-image workflow of Kovospace/inzeratnik-backend-maps does not commit
+# its monthly osm-<date> tag here yet.
+imageTag: "osm-2026-10-16"

@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: inzeratnik-backend
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+
+spec:
+
+  project: applications
+
+  sources:
+
+    - repoURL: git@github.com:Kovospace/kovostack-helm-charts.git
+      targetRevision: chart-app-1.7.0
+      path: charts/app
+      helm:
+        valueFiles:
+          - $values/applications/inzeratnik-backend/values.yaml
+          - $values/versions/inzeratnik-backend.yaml
+          - $values/versions/inzeratnik-backend-init.yaml
+
+    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: inzeratnik-backend
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

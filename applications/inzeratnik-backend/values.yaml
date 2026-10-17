@@ -1,0 +1,59 @@
+---
+name: inzeratnik-backend
+image: inzeratnik-backend
+# Flyway migrations of Kovospace/inzeratnik-migrations run before the app. The tag is the
+# schema version the backend was built against (its pom's flyway.migrations.schema.version),
+# written by the backend's pipeline into versions/inzeratnik-backend-init.yaml.
+initContainers:
+  - name: migrations
+    image: inzeratnik-migrations
+
+# One pod at scaffold stage; the backend keeps no state in the pod, so it can scale like
+# new-tab-links-backend once there is traffic.
+replicas: 1
+
+# Nastavenie domény
+# Spring Boot listens on 8080 (chart default too).
+containerPort: 8080
+host: api.inzeratnik.app
+
+# Probes render only when this is set. Liveness must not depend on the database (an outage
+# would restart every pod and fix nothing); readiness takes the pod out of the Service instead.
+healthPath: /actuator/health
+readinessPath: /actuator/health/readiness
+livenessPath: /actuator/health/liveness
+
+# Pripojenie na postgres databázu
+externalServices:
+  postgres:
+    address: 172.17.0.1 # docker0 gateway — must be an IP, not a hostname
+    port: 5432
+
+# Volumes
+# nie sú
+
+# Secrets come from Infisical folder /inzeratnik-backend (the chart's default path), through
+# envFrom into both the app and the migrations init container:
+#   SPRING_DATASOURCE_USERNAME / SPRING_DATASOURCE_PASSWORD  – role inzeratnik_app (read/write)
+#   FLYWAY_USER / FLYWAY_PASSWORD                            – role inzeratnik_migrations (owns the schema)
+env:
+
+  ### Database settings
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inzeratnik
+  # Schéma patrí migračnému init containeru (Flyway); Hibernate ju smie iba overiť.
+  SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  FLYWAY_URL: jdbc:postgresql://postgres:5432/inzeratnik
+  FLYWAY_CONNECT_RETRIES: 5
+  FLYWAY_CONNECT_RETRIES_INTERVAL: 5
+
+  ### CORS
+  # The website and the Chrome extension (any extension ID – the store assigns it).
+  INZERATNIK_SECURITY_ALLOWED_CORS_ORIGINS: https://inzeratnik.app,chrome-extension://*
+
+resources:
+  requests:
+    cpu: 250m
+    # JVM: InitialRAMPercentage=50 / MaxRAMPercentage=75 of the limit (Dockerfile JAVA_OPTS).
+    memory: 384Mi
+  limits:
+    memory: 512Mi

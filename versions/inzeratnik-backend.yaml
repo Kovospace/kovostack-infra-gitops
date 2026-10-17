@@ -1,0 +1,2 @@
+# Written by the backend's build pipeline (Kovospace/inzeratnik-backend, docker-build.yml) — see versions/README.md.
+# Empty until its first run: the chart then pulls `latest`.

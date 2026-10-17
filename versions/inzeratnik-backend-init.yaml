@@ -1,0 +1,4 @@
+# Written by the backend's build pipeline: initImageTags.migrations = the backend's flyway.migrations.schema.version.
+# Pinned by hand until its first run, to the first migrations release.
+initImageTags:
+  migrations: "0.0.1"

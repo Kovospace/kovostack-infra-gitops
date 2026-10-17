@@ -50,6 +50,15 @@ env:
   # The website and the Chrome extension (any extension ID – the store assigns it).
   INZERATNIK_SECURITY_ALLOWED_CORS_ORIGINS: https://inzeratnik.app,chrome-extension://*
 
+  ### Routing (POST /api/v1/routes – public, rate limited per installation ID and IP)
+  # Valhalla of inzeratnik.app, reached only inside the cluster (its app has no Ingress).
+  INZERATNIK_ROUTING_VALHALLA_BASE_URL: http://inzeratnik-valhalla.inzeratnik-valhalla.svc.cluster.local
+  # Limits are in memory, per pod. Defaults of the app, stated as the deployment's policy:
+  INZERATNIK_ROUTING_INSTALLATION_PER_MINUTE: 30
+  INZERATNIK_ROUTING_INSTALLATION_PER_DAY: 500
+  INZERATNIK_ROUTING_ADDRESS_PER_MINUTE: 120
+  INZERATNIK_ROUTING_ADDRESS_PER_DAY: 3000
+
 resources:
   requests:
     cpu: 250m

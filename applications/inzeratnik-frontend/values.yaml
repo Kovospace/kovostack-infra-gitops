@@ -1,0 +1,34 @@
+---
+name: inzeratnik-frontend
+image: inzeratnik-frontend
+# imageTag lives in versions/inzeratnik-frontend.yaml — written by CI, loaded after this
+# file. Setting it here too would create a second source of truth that always
+# loses.
+
+# Nastavenie domény
+# The image serves the built Angular site with nginx-unprivileged on 8080.
+containerPort: 8080
+host: inzeratnik.app
+wwwAlias: true
+
+# Probes render only when this is set; the image answers /healthz.
+healthPath: /healthz
+
+# Bez external-secrets: nesynchronizuje sa žiadny inzeratnik-frontend-secrets.
+# A static site with no runtime configuration yet. Pulling from the private
+# registry still works: that credential is a separate Secret.
+secrets:
+  enabled: false
+
+# Volumes
+# nie sú
+
+# No runtime configuration yet (backend URL arrives with the account pages, T72).
+env: {}
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    memory: 128Mi

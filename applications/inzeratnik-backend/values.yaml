@@ -46,6 +46,25 @@ env:
   FLYWAY_CONNECT_RETRIES: 5
   FLYWAY_CONNECT_RETRIES_INTERVAL: 5
 
+  ### Authentication (e-mail + password; JWT access token + rotating refresh token)
+  # INZERATNIK_AUTH_JWT_SIGNING_SECRET je vo vaulte (Infisical /inzeratnik-backend), min. 32 bajtov.
+  # Bez neho aplikácia nenaštartuje – zámerne, nemá žiadny default.
+  INZERATNIK_AUTH_JWT_ISSUER: https://api.inzeratnik.app
+  # Links in the activation and password reset e-mails – routes of the website (T72).
+  INZERATNIK_WEB_BASE_URL: https://inzeratnik.app
+  INZERATNIK_WEB_ACTIVATION_PATH: /activate
+  INZERATNIK_WEB_PASSWORD_RESET_PATH: /reset-password
+
+  ### Mail sender settings
+  # Vypnuté, kým nie je Brevo (SMTP účet + overená odosielacia doména): registrácia funguje,
+  # ale aktivačný odkaz sa iba zaloguje. Zapnutie: true + SPRING_MAIL_USERNAME / _PASSWORD do vaultu.
+  INZERATNIK_MAIL_ENABLED: false
+  INZERATNIK_MAIL_FROM_ADDRESS: noreply@mail.inzeratnik.app
+  INZERATNIK_MAIL_FROM_NAME: inzeratnik.app
+  SPRING_MAIL_HOST: smtp-relay.brevo.com
+  SPRING_MAIL_PORT: 2525
+  # SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD – vo vaulte, keď sa mail zapne
+
   ### CORS
   # The website and the Chrome extension (any extension ID – the store assigns it).
   INZERATNIK_SECURITY_ALLOWED_CORS_ORIGINS: https://inzeratnik.app,chrome-extension://*

@@ -78,6 +78,12 @@ env:
   INZERATNIK_ROUTING_ADDRESS_PER_MINUTE: 120
   INZERATNIK_ROUTING_ADDRESS_PER_DAY: 3000
 
+  ### Place search (GET /api/v1/places – public, rate limited per installation ID and IP)
+  # Photon of inzeratnik.app, reached only inside the cluster (its app has no Ingress). The chart's
+  # Service listens on 80 and forwards to the container's 2322, so no port in the URL.
+  # Limits stay at the app's defaults (60 / min, 1000 / day per installation; 180 / min, 5000 / day per IP).
+  INZERATNIK_PLACES_PHOTON_BASE_URL: http://inzeratnik-photon.inzeratnik-photon.svc.cluster.local
+
 resources:
   requests:
     cpu: 250m

@@ -1,0 +1,42 @@
+---
+name: inzeratnik-photon
+image: registry.matejkovac.sk/apps/inzeratnik-photon
+# imageTag lives in versions/inzeratnik-photon.yaml — written by CI, loaded after this
+# file. Setting it here too would create a second source of truth that always
+# loses.
+
+# Nastavenie domény
+containerPort: 2322
+# No public route — no Ingress and no certificate are rendered.
+host: ""
+
+# Bez external-secrets: nesynchronizuje sa žiadny inzeratnik-photon-secrets.
+# The app gets no env vars from Infisical — everything it needs must be in
+# `env:` below, in git. Note that pulling from the private registry still
+# works: that credential is a separate Secret and is not switched off here.
+secrets:
+  enabled: false
+
+# Volumes
+# nie sú – the index is baked into the image.
+
+# Plain, non-sensitive settings only. Anything secret belongs in Infisical.
+env: {}
+
+# Photon geocoder of inzeratnik.app (image built by Kovospace/inzeratnik-backend-maps, workflow
+# "Geocoder image"): addresses and companies of CZ + SK, behind the backend's GET /api/v1/places.
+# Reached only inside the cluster – the inzeratnik backend proxies and rate-limits it (no Ingress).
+#
+# Readiness only, and deliberately no healthPath / livenessPath: the embedded OpenSearch opens a
+# multi-GB index on start, and the chart's liveness probe (15 s delay, 20 s period) could kill it
+# mid-start and loop. /status answers 200 once the index is open (~15 s after start).
+readinessPath: /status
+
+resources:
+  requests:
+    cpu: 250m
+    # ~360 MiB used after queries with a 1 GB heap; the image carries a 2.4 GB index, so the
+    # limit leaves room for its page cache.
+    memory: 1536Mi
+  limits:
+    memory: 2Gi

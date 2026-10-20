@@ -1,0 +1,4 @@
+# Written by the app's build pipeline from here on — see versions/README.md.
+# First tag set by hand; the "Geocoder image" workflow of Kovospace/inzeratnik-backend-maps
+# (scripts/deploy-image-tag.sh) commits its monthly tag here once this app exists.
+imageTag: "photon-2026-10-20-r4"

@@ -1,0 +1,77 @@
+---
+name: taric
+image: taric-sk-frontend
+# imageTag lives in versions/taric.yaml — written by CI, loaded after this
+# file. Setting it here too would create a second source of truth that always
+# loses.
+
+# taric.sk relived — Rails 4.2 / Ruby 2.3 browser of TARIC nomenclature codes
+# (Kovospace/taric-sk-frontend). This file is only the web half. The app's own
+# PostgreSQL 17 and the daily nomenclature updater live in the same namespace
+# but come from the second Application, applications/taric-extras.yaml
+# (chart in applications/taric/extras/) — the app chart renders one Deployment
+# and no StatefulSet/CronJob.
+
+# Nastavenie domény
+# Image default CMD: bundle exec rails server -b 0.0.0.0 -p 3000 (WEBrick).
+containerPort: 3000
+# PLACEHOLDER — the host is not decided yet (the product historically ran at
+# taric.sk). DNS must resolve before the first sync: HTTP-01 challenge.
+host: taric.matejkovac.sk
+
+# One WEBrick process. No persistence, so the chart uses RollingUpdate: on a
+# rollout the new pod's entrypoint runs `rake db:migrate` while the old one
+# still serves (Rails 4.2 has no migration lock — fine with one replica).
+replicas: 1
+
+# Readiness only, deliberately no healthPath / livenessPath:
+#  - there is no health endpoint; `/` renders the tree and answers 200 only
+#    while the database is reachable, so as a liveness probe a Postgres restart
+#    would restart the web pod too, which fixes nothing;
+#  - the entrypoint waits for Postgres and loads/migrates the schema before
+#    Rails listens, and the chart's liveness (15 s delay) would kill it mid-way
+#    on a cold start.
+readinessPath: /
+
+# Volumes
+# nie sú — static assets are precompiled into the image
+# (RAILS_SERVE_STATIC_FILES=1 is baked in). NOTE: Rails logs to
+# log/production.log inside the container, not stdout, so `kubectl logs` shows
+# only WEBrick's access log and the log is lost on every restart.
+
+# Secrets come from Infisical /taric through envFrom (taric-secrets):
+#   DATABASE_URL      postgres://taricsk:<POSTGRES_PASSWORD>@postgres:5432/taricsk
+#                     overrides config/database.yml `production`; the password
+#                     must be the same as POSTGRES_PASSWORD below
+#   SECRET_KEY_BASE   openssl rand -hex 64
+#   POSTGRES_PASSWORD read by the in-namespace Postgres (taric-extras) only on
+#                     first init of its volume
+env:
+  ### Database settings
+  # In-namespace PostgreSQL 17 (Service `postgres`, rendered by taric-extras —
+  # NOT the shared Postgres on the VM, hence no externalServices here). Used
+  # by the entrypoint's `pg_isready -h $DB_HOST` before it touches the schema.
+  DB_HOST: postgres
+  DB_PORT: 5432
+
+resources:
+  requests:
+    cpu: 100m
+    # WEBrick + Rails 4.2 measured at ~200–300 MB.
+    memory: 320Mi
+  limits:
+    memory: 640Mi
+
+# Nightly pg_dump of the in-namespace database to the restic gateway (K8up).
+# The dump pod gets this app's env and Secret and connects through
+# DATABASE_URL, so it reaches the `postgres` Service in this namespace exactly
+# like the app — nothing in the backup feature needs externalServices.
+# tarics is re-derivable from the public feed, but `news` and `descriptions`
+# are not written by any importer; at <200 MB the dump costs next to nothing.
+# The dump image (postgres:17.11-alpine, chart default) matches the server's
+# major (17) — raise both together.
+backup:
+  enabled: true
+  postgres:
+    enabled: true
+    urlEnv: DATABASE_URL

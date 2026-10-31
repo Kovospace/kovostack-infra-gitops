@@ -32,6 +32,9 @@ postgres:
   # POSTGRES_USER is the bootstrap superuser, so the app may CREATE EXTENSION.
   # POSTGRES_PASSWORD comes from Infisical /taric. Both are read ONLY when the
   # volume is initialised; changing them later needs ALTER USER by hand.
+  # The app reads the same names (config/database.yml `production`): user and
+  # database through `env` in applications/taric/values.yaml — keep them equal
+  # to these — and the password from taric-secrets.
   user: taricsk
   database: taricsk
   passwordKey: POSTGRES_PASSWORD

@@ -63,7 +63,8 @@ spec:
               # schema to the web pod so the two never race.
               args: ["bundle", "exec", "rake", "nomenclatures:update"]
               envFrom:
-                # DATABASE_URL, SECRET_KEY_BASE — the same Secret as the web pod.
+                # POSTGRES_PASSWORD, SECRET_KEY_BASE (and DATABASE_URL while it
+                # exists) — the same Secret as the web pod.
                 - secretRef:
                     name: {{ .Values.secretName }}
               env:
@@ -72,6 +73,11 @@ spec:
                   value: postgres
                 - name: DB_PORT
                   value: "5432"
+                # config/database.yml `production` reads these + POSTGRES_PASSWORD.
+                - name: POSTGRES_DB
+                  value: {{ .Values.postgres.database | quote }}
+                - name: POSTGRES_USER
+                  value: {{ .Values.postgres.user | quote }}
                 - name: SKIP_DB_PREPARE
                   value: "1"
                 - name: NOMENCLATURE_FEED_DIR

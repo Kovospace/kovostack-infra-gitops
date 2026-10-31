@@ -20,39 +20,74 @@ containerPort: 3000
 host: taric.matejkovac.sk
 
 # One WEBrick process. No persistence, so the chart uses RollingUpdate: on a
-# rollout the new pod's entrypoint runs `rake db:migrate` while the old one
-# still serves (Rails 4.2 has no migration lock — fine with one replica).
+# rollout the new pod's db-prepare init container runs `rake db:migrate` while
+# the old pod still serves (Rails 4.2 has no migration lock — fine with one
+# replica, not with more).
 replicas: 1
 
-# Readiness only, deliberately no healthPath / livenessPath:
-#  - there is no health endpoint; `/` renders the tree and answers 200 only
-#    while the database is reachable, so as a liveness probe a Postgres restart
-#    would restart the web pod too, which fixes nothing;
-#  - the entrypoint waits for Postgres and loads/migrates the schema before
-#    Rails listens, and the chart's liveness (15 s delay) would kill it mid-way
-#    on a cold start.
+# Schema step as an init container, not in the app container's entrypoint.
+# The image's entrypoint (docker/entrypoint.sh) waits for Postgres, then
+# db:create + schema:load/migrate, then execs its arguments — here `true`, so
+# the step ends there. It rides the app's imageTag (same image, our registry)
+# and inherits envFrom and `env:` below; its own SKIP_DB_PREPARE: "" switches
+# the prepare back on for this container only.
+#
+# Why: chart-app-1.7.0 renders no startupProbe and fixes the liveness timing
+# (15 s delay, 20 s period, default failureThreshold 3 → killed after ~75 s
+# without a listener). With the Postgres wait and three or four Rails boots of
+# the schema step in the app container, a cold start — or any start while
+# Postgres is down — could be killed in a loop. Probes do not run during init
+# containers, so the wait can take as long as it needs, and the app container
+# only boots WEBrick (pg_isready answers at once, SKIP_DB_PREPARE=1).
+initContainers:
+  - name: db-prepare
+    image: taric-sk-frontend
+    command: ["entrypoint.sh", "true"]
+    env:
+      SKIP_DB_PREPARE: ""
+    # Pod requests are max(init, app), so this reserves nothing extra.
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 640Mi
+
+# Two probes, two questions:
+#  - liveness /healthz: a Rack proc in config/routes.rb, 200 "ok", touches no
+#    database — a Postgres outage never restarts the web pod;
+#  - readiness /: renders the tree, 200 only while the database answers, so a
+#    database outage just takes the pod out of the Service.
+livenessPath: /healthz
 readinessPath: /
 
 # Volumes
 # nie sú — static assets are precompiled into the image
-# (RAILS_SERVE_STATIC_FILES=1 is baked in). NOTE: Rails logs to
-# log/production.log inside the container, not stdout, so `kubectl logs` shows
-# only WEBrick's access log and the log is lost on every restart.
+# (RAILS_SERVE_STATIC_FILES=1 is baked in). Logs go to stdout
+# (RAILS_LOG_TO_STDOUT=1 in the image); level via RAILS_LOG_LEVEL, default info.
 
 # Secrets come from Infisical /taric through envFrom (taric-secrets):
-#   DATABASE_URL      postgres://taricsk:<POSTGRES_PASSWORD>@postgres:5432/taricsk
-#                     overrides config/database.yml `production`; the password
-#                     must be the same as POSTGRES_PASSWORD below
+#   POSTGRES_PASSWORD the app's DB password: config/database.yml `production`
+#                     reads it, and the in-namespace Postgres (taric-extras)
+#                     reads it on first init of its volume
 #   SECRET_KEY_BASE   openssl rand -hex 64
-#   POSTGRES_PASSWORD read by the in-namespace Postgres (taric-extras) only on
-#                     first init of its volume
+#   DATABASE_URL      postgres://taricsk:<POSTGRES_PASSWORD>@postgres:5432/taricsk
+#                     overrides database.yml when present; kept for now because
+#                     backup.postgres below connects through it — same password
+#                     as POSTGRES_PASSWORD
 env:
   ### Database settings
   # In-namespace PostgreSQL 17 (Service `postgres`, rendered by taric-extras —
-  # NOT the shared Postgres on the VM, hence no externalServices here). Used
-  # by the entrypoint's `pg_isready -h $DB_HOST` before it touches the schema.
+  # NOT the shared Postgres on the VM, hence no externalServices here). Read by
+  # config/database.yml `production` and by the entrypoint's pg_isready.
+  # User/database must match postgres.user/database in
+  # applications/taric/extras/values.yaml.
   DB_HOST: postgres
   DB_PORT: 5432
+  POSTGRES_DB: taricsk
+  POSTGRES_USER: taricsk
+  # The schema belongs to the db-prepare init container above.
+  SKIP_DB_PREPARE: "1"
 
 resources:
   requests:
@@ -75,3 +110,10 @@ backup:
   postgres:
     enabled: true
     urlEnv: DATABASE_URL
+    # Once DATABASE_URL is dropped from Infisical, replace urlEnv with the parts
+    # the app already has (env above + POSTGRES_PASSWORD from the Secret):
+    #   hostEnv: DB_HOST
+    #   portEnv: DB_PORT
+    #   databaseEnv: POSTGRES_DB
+    #   userEnv: POSTGRES_USER
+    #   passwordEnv: POSTGRES_PASSWORD

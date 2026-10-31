@@ -89,6 +89,15 @@ env:
   # The schema belongs to the db-prepare init container above.
   SKIP_DB_PREPARE: "1"
 
+  ### Canonical host
+  # Read by the app (Kovospace/taric-sk-frontend#3) for canonical URLs and the
+  # sitemap; it 301-redirects exactly www.<CANONICAL_HOST> to
+  # https://<CANONICAL_HOST>, so it must equal `host` (wwwAlias serves www).
+  # Probes hit the pod IP and are not redirected. Ignored by older images.
+  # `env:` is shared by the chart, so db-prepare and the backup dump pod get
+  # it too — harmless; the updater CronJob lists its own env and does not.
+  CANONICAL_HOST: taric.sk
+
 resources:
   requests:
     cpu: 100m

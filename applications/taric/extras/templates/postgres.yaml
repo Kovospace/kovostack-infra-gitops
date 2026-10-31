@@ -1,0 +1,108 @@
+{{- $pg := .Values.postgres }}
+---
+# Kept when the Application is deleted (Delete=false, as the app chart does for
+# its PVCs). local-path-retain: deleting the claim leaves the PV and files on
+# disk, but a re-created claim binds a NEW, EMPTY volume — never rename this.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: taric-postgres-data
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: taric-postgres
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false
+    # A file copy of a live PGDATA is not a backup; the database is backed up
+    # by the app chart's pg_dump (backup.postgres in applications/taric).
+    k8up.io/backup: "false"
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ $pg.storage.storageClass }}
+  resources:
+    requests:
+      storage: {{ $pg.storage.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: taric-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: taric-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+# A StatefulSet of one: never two pods on the one data directory, not even
+# during a rollout.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: taric-postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: taric-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: taric-postgres
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: postgres
+          image: "{{ $pg.image }}:{{ $pg.imageTag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: {{ $pg.user | quote }}
+            - name: POSTGRES_DB
+              value: {{ $pg.database | quote }}
+            # Only this key from taric-secrets — not envFrom, so the database
+            # never sees SECRET_KEY_BASE and the rest.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: {{ $pg.passwordKey }}
+            # A subdirectory, so initdb never trips over anything at the
+            # volume root.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -h 127.0.0.1"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -h 127.0.0.1"]
+            # initdb on first start and crash recovery after an unclean stop
+            # both take a while; do not kill either.
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+          {{- with $pg.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: taric-postgres-data

@@ -1,0 +1,95 @@
+{{- $u := .Values.updater }}
+{{- $tag := required "imageTag is empty — the Application must load versions/taric.yaml" .Values.imageTag }}
+---
+# Download cache + "last imported" state of rake nomenclatures:update.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: taric-nomenclatures
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: taric-updater
+  annotations:
+    # Re-derivable from the public feed.
+    k8up.io/backup: "false"
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ $u.cache.storageClass }}
+  resources:
+    requests:
+      storage: {{ $u.cache.size }}
+---
+# Daily `rake nomenclatures:update`. A CronJob rather than the compose file's
+# sleep loop: its memory is reserved only while a run exists (~3 min a day,
+# peak ~600 MB), Forbid makes two imports at once impossible, and each run is
+# a Job with its own logs and status. Same image and tag as the web pod.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: updater
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: taric-updater
+spec:
+  schedule: {{ $u.schedule | quote }}
+  concurrencyPolicy: Forbid
+  # A run missed by more than this (node down, restart) is skipped, not
+  # replayed late into the day.
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: taric-updater
+    spec:
+      # One retry; the next day's run is the real retry.
+      backoffLimit: 1
+      activeDeadlineSeconds: {{ $u.activeDeadlineSeconds }}
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: taric-updater
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: {{ .Values.pullSecretName }}
+          containers:
+            - name: updater
+              image: "{{ .Values.image }}:{{ $tag }}"
+              imagePullPolicy: IfNotPresent
+              # The image's ENTRYPOINT (docker/entrypoint.sh) still runs: it
+              # waits for Postgres, and SKIP_DB_PREPARE makes it leave the
+              # schema to the web pod so the two never race.
+              args: ["bundle", "exec", "rake", "nomenclatures:update"]
+              envFrom:
+                # POSTGRES_PASSWORD, SECRET_KEY_BASE — the same Secret as the
+                # web pod.
+                - secretRef:
+                    name: {{ .Values.secretName }}
+              env:
+                # Keep in step with `env` in applications/taric/values.yaml.
+                - name: DB_HOST
+                  value: postgres
+                - name: DB_PORT
+                  value: "5432"
+                # config/database.yml `production` reads these + POSTGRES_PASSWORD.
+                - name: POSTGRES_DB
+                  value: {{ .Values.postgres.database | quote }}
+                - name: POSTGRES_USER
+                  value: {{ .Values.postgres.user | quote }}
+                - name: SKIP_DB_PREPARE
+                  value: "1"
+                - name: NOMENCLATURE_FEED_DIR
+                  value: {{ $u.cache.mountPath | quote }}
+              {{- with $u.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              volumeMounts:
+                - name: nomenclatures
+                  mountPath: {{ $u.cache.mountPath }}
+          volumes:
+            - name: nomenclatures
+              persistentVolumeClaim:
+                claimName: taric-nomenclatures

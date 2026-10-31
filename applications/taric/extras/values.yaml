@@ -1,0 +1,81 @@
+---
+# Values of the taric-extras chart (applications/taric-extras.yaml). Edited by
+# humans. `imageTag` is NOT set here: the Application loads
+# versions/taric.yaml after this file, so the updater always runs the same
+# image as the web Deployment and one CI bump moves both.
+
+# Namespace, owned (rendered) by the `taric` Application through the app chart.
+# This chart creates no Namespace and must stay in step with `name` there.
+namespace: taric
+
+# Synced from Infisical /taric by the app chart's ExternalSecret.
+secretName: taric-secrets
+# Pull secret for registry.matejkovac.sk, also rendered by the app chart.
+pullSecretName: taric-registry
+
+image: registry.matejkovac.sk/apps/taric-sk-frontend
+imageTag: ""          # from versions/taric.yaml
+
+# --- PostgreSQL 17, this app's own -------------------------------------------
+# The one deviation from the other apps: taric does NOT use the platform's
+# Postgres on the VM. Reached in the namespace as postgres:5432 — the same
+# name the other apps use through externalServices, so a later move to the
+# shared server is a change of DB_HOST (and credentials) only. Do not add
+# `externalServices.postgres` to applications/taric/values.yaml while this
+# Service exists: both would be a Service named `postgres`.
+postgres:
+  # Official image: unaccent (CREATE EXTENSION in db/schema.rb) is included.
+  # Debian, not alpine — glibc locales for the Slovak texts. Minor in step with
+  # the chart's pg_dump image (backup.postgres.imageTag, 17.11-alpine).
+  image: docker.io/library/postgres
+  imageTag: "17.11"
+  # POSTGRES_USER is the bootstrap superuser, so the app may CREATE EXTENSION.
+  # POSTGRES_PASSWORD comes from Infisical /taric. Both are read ONLY when the
+  # volume is initialised; changing them later needs ALTER USER by hand.
+  # The app reads the same names (config/database.yml `production`): user and
+  # database through `env` in applications/taric/values.yaml — keep them equal
+  # to these — and the password from taric-secrets.
+  user: taricsk
+  database: taricsk
+  passwordKey: POSTGRES_PASSWORD
+  storage:
+    # Data is <200 MB. local-path cannot grow a claim in place
+    # (allowVolumeExpansion: false), so sized with headroom now.
+    size: 2Gi
+    storageClass: local-path-retain
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      # shared_buffers stays at the 128 MB default; the import runs as one
+      # transaction (~3 min) and is the peak.
+      memory: 512Mi
+
+# --- nomenclature updater ----------------------------------------------------
+# `rake nomenclatures:update` downloads the codebooks from
+# https://idesk.tcep.financnasprava.sk/Codebooks/ (~235 MB of XML,
+# a few MB gzipped on the wire) and re-imports `tarics` in one transaction only
+# when the files changed. Also fills an empty database on its first run.
+updater:
+  # UTC (no timeZone field, so it does not depend on the cluster version):
+  # 05:30 CET / 06:30 CEST — clear of the K8up backup slots (00/01/03/04:xx
+  # local) and of 02:xx DST trouble.
+  schedule: "30 4 * * *"
+  # Kill a hung download/import rather than block the next day (Forbid).
+  activeDeadlineSeconds: 3600
+  # Keeps the downloaded XML and http_state.json/imported.json between runs, so
+  # an unchanged feed is a 304 and no import. Disposable — losing it only means
+  # one re-download and re-import — hence the stock `local-path` class
+  # (reclaimPolicy: Delete) and no backup.
+  cache:
+    size: 1Gi
+    storageClass: local-path
+    mountPath: /app/tmp/nomenclatures
+  resources:
+    requests:
+      cpu: 100m
+      # Peak ~600 MB during the import; requested only while a run exists.
+      memory: 640Mi
+    limits:
+      memory: 1Gi

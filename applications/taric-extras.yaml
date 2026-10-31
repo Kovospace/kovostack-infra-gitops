@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+# The second half of taric, for what the app chart cannot render: the app's own
+# PostgreSQL 17 (StatefulSet + PVC + Service `postgres`) and the daily
+# nomenclature updater (CronJob). See applications/README.md, "When the chart
+# does not fit". Namespace, taric-secrets, the registry pull secret and the
+# Ingress all come from the `taric` Application; this one renders none of them.
+
+metadata:
+  name: taric-extras
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+
+spec:
+
+  project: applications
+
+  sources:
+
+    ### Postgres + updater, a small chart kept next to the app's values
+    # Not pinned: it is configuration of this one app, versioned with this repo
+    # like applications/taric/values.yaml. Both sources are this repo at the
+    # same revision, which ArgoCD allows (only differing revisions are refused).
+    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+      targetRevision: main
+      path: applications/taric/extras
+      helm:
+        # The chart's own values.yaml loads first by default; versions/taric.yaml
+        # (written by CI) adds imageTag, so the updater runs the web pod's image.
+        valueFiles:
+          - $values/versions/taric.yaml
+
+    ### Pointer na referencovaný values.yaml
+    - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    # Owned by the `taric` Application (the app chart renders the Namespace).
+    namespace: taric
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+    # Both Applications appear in the same sync of `applications`; until
+    # `taric` has created the namespace this one fails with "namespace not
+    # found". Retry instead of waiting for the next commit.
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m

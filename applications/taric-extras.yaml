@@ -10,8 +10,6 @@ kind: Application
 metadata:
   name: taric-extras
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 
 spec:
 

@@ -63,8 +63,8 @@ spec:
               # schema to the web pod so the two never race.
               args: ["bundle", "exec", "rake", "nomenclatures:update"]
               envFrom:
-                # POSTGRES_PASSWORD, SECRET_KEY_BASE (and DATABASE_URL while it
-                # exists) — the same Secret as the web pod.
+                # POSTGRES_PASSWORD, SECRET_KEY_BASE — the same Secret as the
+                # web pod.
                 - secretRef:
                     name: {{ .Values.secretName }}
               env:

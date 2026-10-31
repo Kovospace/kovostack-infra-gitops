@@ -20,7 +20,7 @@ imageTag: ""          # from versions/taric.yaml
 # The one deviation from the other apps: taric does NOT use the platform's
 # Postgres on the VM. Reached in the namespace as postgres:5432 — the same
 # name the other apps use through externalServices, so a later move to the
-# shared server is a change of DB_HOST/DATABASE_URL target only. Do not add
+# shared server is a change of DB_HOST (and credentials) only. Do not add
 # `externalServices.postgres` to applications/taric/values.yaml while this
 # Service exists: both would be a Service named `postgres`.
 postgres:

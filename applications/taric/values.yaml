@@ -71,10 +71,9 @@ readinessPath: /
 #                     reads it, and the in-namespace Postgres (taric-extras)
 #                     reads it on first init of its volume
 #   SECRET_KEY_BASE   openssl rand -hex 64
-#   DATABASE_URL      postgres://taricsk:<POSTGRES_PASSWORD>@postgres:5432/taricsk
-#                     overrides database.yml when present; kept for now because
-#                     backup.postgres below connects through it — same password
-#                     as POSTGRES_PASSWORD
+# Nothing else. The app builds its connection from POSTGRES_PASSWORD and the
+# variables below; a connection-URL variable would override all of them, so
+# none is set anywhere — not here, not in Infisical.
 env:
   ### Database settings
   # In-namespace PostgreSQL 17 (Service `postgres`, rendered by taric-extras —
@@ -98,9 +97,10 @@ resources:
     memory: 640Mi
 
 # Nightly pg_dump of the in-namespace database to the restic gateway (K8up).
-# The dump pod gets this app's env and Secret and connects through
-# DATABASE_URL, so it reaches the `postgres` Service in this namespace exactly
-# like the app — nothing in the backup feature needs externalServices.
+# The dump pod gets this app's `env:` and its Secret (envFrom), and the chart
+# exports the five variables named below as PGHOST/PGPORT/PGDATABASE/PGUSER/
+# PGPASSWORD — so it reaches the `postgres` Service in this namespace with the
+# app's own settings; nothing in the backup feature needs externalServices.
 # tarics is re-derivable from the public feed, but `news` and `descriptions`
 # are not written by any importer; at <200 MB the dump costs next to nothing.
 # The dump image (postgres:17.11-alpine, chart default) matches the server's
@@ -109,11 +109,10 @@ backup:
   enabled: true
   postgres:
     enabled: true
-    urlEnv: DATABASE_URL
-    # Once DATABASE_URL is dropped from Infisical, replace urlEnv with the parts
-    # the app already has (env above + POSTGRES_PASSWORD from the Secret):
-    #   hostEnv: DB_HOST
-    #   portEnv: DB_PORT
-    #   databaseEnv: POSTGRES_DB
-    #   userEnv: POSTGRES_USER
-    #   passwordEnv: POSTGRES_PASSWORD
+    # env: above (git)
+    hostEnv: DB_HOST
+    portEnv: DB_PORT
+    databaseEnv: POSTGRES_DB
+    userEnv: POSTGRES_USER
+    # taric-secrets (Infisical /taric)
+    passwordEnv: POSTGRES_PASSWORD

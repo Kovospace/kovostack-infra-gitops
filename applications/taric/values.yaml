@@ -6,11 +6,10 @@ image: taric-sk-frontend
 # loses.
 
 # taric.sk relived — Rails 4.2 / Ruby 2.3 browser of TARIC nomenclature codes
-# (Kovospace/taric-sk-frontend). This file is only the web half. The app's own
-# PostgreSQL 17 and the daily nomenclature updater live in the same namespace
-# but come from the second Application, applications/taric-extras.yaml
-# (chart in applications/taric/extras/) — the app chart renders one Deployment
-# and no StatefulSet/CronJob.
+# (Kovospace/taric-sk-frontend). Everything is in this one release: the web
+# Deployment from the chart's own values, and the app's own PostgreSQL 17 and
+# the daily nomenclature updater from `extraObjects` at the end of this file
+# (chart-app >= 1.8.0).
 
 # Nastavenie domény
 # Image default CMD: bundle exec rails server -b 0.0.0.0 -p 3000 (WEBrick).
@@ -68,19 +67,20 @@ readinessPath: /
 
 # Secrets come from Infisical /taric through envFrom (taric-secrets):
 #   POSTGRES_PASSWORD the app's DB password: config/database.yml `production`
-#                     reads it, and the in-namespace Postgres (taric-extras)
-#                     reads it on first init of its volume
+#                     reads it, and the in-namespace Postgres (extraObjects
+#                     below) reads it on first init of its volume
 #   SECRET_KEY_BASE   openssl rand -hex 64
 # Nothing else. The app builds its connection from POSTGRES_PASSWORD and the
 # variables below; a connection-URL variable would override all of them, so
 # none is set anywhere — not here, not in Infisical.
 env:
   ### Database settings
-  # In-namespace PostgreSQL 17 (Service `postgres`, rendered by taric-extras —
-  # NOT the shared Postgres on the VM, hence no externalServices here). Read by
-  # config/database.yml `production` and by the entrypoint's pg_isready.
-  # User/database must match postgres.user/database in
-  # applications/taric/extras/values.yaml.
+  # In-namespace PostgreSQL 17 (Service `postgres`, in extraObjects below —
+  # NOT the shared Postgres on the VM, hence no externalServices here; adding
+  # externalServices.postgres would be a second Service named `postgres`).
+  # Read by config/database.yml `production` and the entrypoint's pg_isready,
+  # and by the Postgres StatefulSet and updater CronJob below through
+  # `.Values.env` — one place for user and database.
   DB_HOST: postgres
   DB_PORT: 5432
   POSTGRES_DB: taricsk
@@ -116,3 +116,206 @@ backup:
     userEnv: POSTGRES_USER
     # taric-secrets (Infisical /taric)
     passwordEnv: POSTGRES_PASSWORD
+
+# --- extra objects: what the app chart has no value for -----------------------
+# taric's own PostgreSQL 17 (PVC + Service `postgres` + StatefulSet) and the
+# daily nomenclature updater (PVC + CronJob), rendered into this release
+# (chart-app >= 1.8.0).
+#
+# Every item goes through `tpl`: user, database, host and port are read from
+# `env:` above, the image and tag from `image` + versions/taric.yaml, the
+# Secret and pull secret from the chart's own helpers — nothing is repeated.
+# Labels: app.kubernetes.io/name taric-postgres / taric-updater, never `taric`,
+# which would put these pods behind the web Service and these claims into the
+# file-level backup (the chart refuses it). Namespace: the chart fills in
+# `taric`.
+extraObjects:
+  # Kept when the Application is deleted (Delete=false, as the chart does for
+  # its own PVCs). local-path-retain: deleting the claim leaves the PV and
+  # files on disk, but a re-created claim binds a NEW, EMPTY volume — never
+  # rename this.
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: taric-postgres-data
+      labels:
+        app.kubernetes.io/name: taric-postgres
+      annotations:
+        argocd.argoproj.io/sync-options: Delete=false
+        # A file copy of a live PGDATA is not a backup; the database is backed
+        # up by pg_dump (backup.postgres above).
+        k8up.io/backup: "false"
+    spec:
+      accessModes: [ReadWriteOnce]
+      storageClassName: local-path-retain
+      resources:
+        requests:
+          # <200 MB of data; local-path cannot grow a claim in place.
+          storage: 2Gi
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: postgres
+      labels:
+        app.kubernetes.io/name: taric-postgres
+    spec:
+      type: ClusterIP
+      selector:
+        app.kubernetes.io/name: taric-postgres
+      ports:
+        - name: postgres
+          port: 5432
+          targetPort: postgres
+
+  # A StatefulSet of one: never two pods on the one data directory, not even
+  # during a rollout.
+  - apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: postgres
+      labels:
+        app.kubernetes.io/name: taric-postgres
+    spec:
+      serviceName: postgres
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: taric-postgres
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: taric-postgres
+        spec:
+          terminationGracePeriodSeconds: 60
+          containers:
+            - name: postgres
+              # Official Debian image (unaccent, glibc locales). Minor in step
+              # with the chart's pg_dump image (17.11-alpine).
+              image: docker.io/library/postgres:17.11
+              imagePullPolicy: IfNotPresent
+              ports:
+                - name: postgres
+                  containerPort: 5432
+              env:
+                # Bootstrap superuser and database, read ONLY when the volume
+                # is initialised. The same `env:` the app reads.
+                - name: POSTGRES_USER
+                  value: '{{ .Values.env.POSTGRES_USER }}'
+                - name: POSTGRES_DB
+                  value: '{{ .Values.env.POSTGRES_DB }}'
+                # Only this key from the synced Secret — not envFrom.
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: '{{ include "app.secretName" . }}'
+                      key: POSTGRES_PASSWORD
+                - name: PGDATA
+                  value: /var/lib/postgresql/data/pgdata
+              readinessProbe:
+                exec:
+                  command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -h 127.0.0.1"]
+                initialDelaySeconds: 5
+                periodSeconds: 10
+              livenessProbe:
+                exec:
+                  command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -h 127.0.0.1"]
+                initialDelaySeconds: 60
+                periodSeconds: 30
+                failureThreshold: 5
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+              volumeMounts:
+                - name: data
+                  mountPath: /var/lib/postgresql/data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: taric-postgres-data
+
+  # Download cache + "last imported" state of rake nomenclatures:update.
+  # Re-derivable from the public feed: stock local-path, no backup, and no
+  # Delete=false.
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: taric-nomenclatures
+      labels:
+        app.kubernetes.io/name: taric-updater
+      annotations:
+        k8up.io/backup: "false"
+    spec:
+      accessModes: [ReadWriteOnce]
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 1Gi
+
+  # Daily `rake nomenclatures:update`, same image and tag as the web pod —
+  # one CI bump in versions/taric.yaml moves both.
+  - apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: updater
+      labels:
+        app.kubernetes.io/name: taric-updater
+    spec:
+      # UTC: 05:30 CET / 06:30 CEST, clear of the backup slots and 02:xx.
+      schedule: "30 4 * * *"
+      concurrencyPolicy: Forbid
+      startingDeadlineSeconds: 3600
+      successfulJobsHistoryLimit: 3
+      failedJobsHistoryLimit: 3
+      jobTemplate:
+        metadata:
+          labels:
+            app.kubernetes.io/name: taric-updater
+        spec:
+          backoffLimit: 1
+          activeDeadlineSeconds: 3600
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/name: taric-updater
+            spec:
+              restartPolicy: Never
+              imagePullSecrets:
+                - name: '{{ include "app.pullSecretName" . }}'
+              containers:
+                - name: updater
+                  image: '{{ include "app.imageRepository" . }}:{{ required "imageTag is empty — load versions/taric.yaml" .Values.imageTag }}'
+                  imagePullPolicy: IfNotPresent
+                  args: ["bundle", "exec", "rake", "nomenclatures:update"]
+                  envFrom:
+                    - secretRef:
+                        name: '{{ include "app.secretName" . }}'
+                  env:
+                    - name: DB_HOST
+                      value: '{{ .Values.env.DB_HOST }}'
+                    - name: DB_PORT
+                      value: '{{ .Values.env.DB_PORT }}'
+                    - name: POSTGRES_DB
+                      value: '{{ .Values.env.POSTGRES_DB }}'
+                    - name: POSTGRES_USER
+                      value: '{{ .Values.env.POSTGRES_USER }}'
+                    - name: SKIP_DB_PREPARE
+                      value: "1"
+                    - name: NOMENCLATURE_FEED_DIR
+                      value: /app/tmp/nomenclatures
+                  resources:
+                    requests:
+                      cpu: 100m
+                      memory: 640Mi
+                    limits:
+                      memory: 1Gi
+                  volumeMounts:
+                    - name: nomenclatures
+                      mountPath: /app/tmp/nomenclatures
+              volumes:
+                - name: nomenclatures
+                  persistentVolumeClaim:
+                    claimName: taric-nomenclatures

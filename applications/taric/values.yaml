@@ -17,6 +17,7 @@ containerPort: 3000
 # PLACEHOLDER — the host is not decided yet (the product historically ran at
 # taric.sk). DNS must resolve before the first sync: HTTP-01 challenge.
 host: taric.sk
+wwwAlias: true
 
 # One WEBrick process. No persistence, so the chart uses RollingUpdate: on a
 # rollout the new pod's db-prepare init container runs `rake db:migrate` while

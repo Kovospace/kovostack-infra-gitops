@@ -36,6 +36,8 @@ externalServices:
 # envFrom into both the app and the migrations init container:
 #   SPRING_DATASOURCE_USERNAME / SPRING_DATASOURCE_PASSWORD  – role inzeratnik_app (read/write)
 #   FLYWAY_USER / FLYWAY_PASSWORD                            – role inzeratnik_migrations (owns the schema)
+#   INZERATNIK_ADMIN_USERNAME / INZERATNIK_ADMIN_PASSWORD     – operator admin API (/api/v1/admin/**);
+#                                                              blank = admin sign-in answers 401, app still starts
 env:
 
   ### Database settings
@@ -67,7 +69,11 @@ env:
 
   ### CORS
   # The website and the Chrome extension (any extension ID – the store assigns it).
-  INZERATNIK_SECURITY_ALLOWED_CORS_ORIGINS: https://inzeratnik.app,chrome-extension://*
+  # www.inzeratnik.app is listed too: the website's values set wwwAlias, which serves the site on
+  # www without redirecting to the apex, so a browser there sends Origin https://www.inzeratnik.app.
+  # The backend checks Origin on every endpoint (incl. the no-cors POST /api/v1/stats/website-visit),
+  # so a missing entry silently drops www visits and breaks sign-in on www.
+  INZERATNIK_SECURITY_ALLOWED_CORS_ORIGINS: https://inzeratnik.app,https://www.inzeratnik.app,chrome-extension://*
 
   ### Routing (POST /api/v1/routes – public, rate limited per installation ID and IP)
   # Valhalla of inzeratnik.app, reached only inside the cluster (its app has no Ingress).

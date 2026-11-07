@@ -8,8 +8,8 @@ image: taric-sk-frontend
 # taric.sk relived — Rails 4.2 / Ruby 2.3 browser of TARIC nomenclature codes
 # (Kovospace/taric-sk-frontend). Everything is in this one release: the web
 # Deployment from the chart's own values, and the app's own PostgreSQL 17 and
-# the daily nomenclature updater from `extraObjects` at the end of this file
-# (chart-app >= 1.8.0).
+# the daily nomenclature and weekly legal notes updaters from `extraObjects`
+# at the end of this file (chart-app >= 1.8.0).
 
 # Nastavenie domény
 # Image default CMD: bundle exec rails server -b 0.0.0.0 -p 3000 (WEBrick).
@@ -119,14 +119,16 @@ backup:
     passwordEnv: POSTGRES_PASSWORD
 
 # --- extra objects: what the app chart has no value for -----------------------
-# taric's own PostgreSQL 17 (PVC + Service `postgres` + StatefulSet) and the
-# daily nomenclature updater (PVC + CronJob), rendered into this release
+# taric's own PostgreSQL 17 (PVC + Service `postgres` + StatefulSet), the
+# daily nomenclature updater (PVC + CronJob) and the weekly legal notes
+# updater (CronJob on the same PVC), rendered into this release
 # (chart-app >= 1.8.0).
 #
 # Every item goes through `tpl`: user, database, host and port are read from
 # `env:` above, the image and tag from `image` + versions/taric.yaml, the
 # Secret and pull secret from the chart's own helpers — nothing is repeated.
-# Labels: app.kubernetes.io/name taric-postgres / taric-updater, never `taric`,
+# Labels: app.kubernetes.io/name taric-postgres / taric-updater /
+# taric-legal-notes-updater, never `taric`,
 # which would put these pods behind the web Service and these claims into the
 # file-level backup (the chart refuses it). Namespace: the chart fills in
 # `taric`.
@@ -307,6 +309,87 @@ extraObjects:
                       value: "1"
                     - name: NOMENCLATURE_FEED_DIR
                       value: /app/tmp/nomenclatures
+                  resources:
+                    requests:
+                      cpu: 100m
+                      memory: 640Mi
+                    limits:
+                      memory: 1Gi
+                  volumeMounts:
+                    - name: nomenclatures
+                      mountPath: /app/tmp/nomenclatures
+              volumes:
+                - name: nomenclatures
+                  persistentVolumeClaim:
+                    claimName: taric-nomenclatures
+
+  # Weekly `rake legal_notes:update` (taric-sk-frontend PR #7): downloads the
+  # Slovak EUR-Lex PDF of the Combined Nomenclature, runs pdftotext (poppler-
+  # utils is in the image) and loads GIR, section and chapter notes into
+  # `legal_notes`; the import is skipped while the PDF's SHA-256 is unchanged.
+  # A CronJob of its own, not a step of the daily updater: the source changes
+  # about once a year, so a daily run would only re-check an unchanged PDF,
+  # and a failure here must not block or mark failed the nomenclature import.
+  # Same image, Secret, env and PVC as the updater above — the PDF is cached
+  # next to the feed (NOMENCLATURE_FEED_DIR, cn-<version>.sk.pdf/.txt, no
+  # clash with the feed's files). The two never overlap (00:30 vs 04:30 UTC,
+  # each capped at 1 h); the claim is RWO, which is fine on this one-node
+  # cluster.
+  - apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: legal-notes-updater
+      labels:
+        app.kubernetes.io/name: taric-legal-notes-updater
+    spec:
+      # UTC, Sunday→Monday night: Mon 01:30 CET / 02:30 CEST. Clear of the
+      # backup slots (taric's derived pg_dump 04:33, check Wed / prune Sun
+      # 08:33, kovo-old 20:45 / 08:57 — all Europe/Bratislava) and of the
+      # updater at 04:30 UTC. UTC has no DST, so 02:30 CEST is not the chart's
+      # 02:xx problem (that is for K8up's local-time schedules).
+      schedule: "30 0 * * 1"
+      concurrencyPolicy: Forbid
+      startingDeadlineSeconds: 3600
+      successfulJobsHistoryLimit: 3
+      failedJobsHistoryLimit: 3
+      jobTemplate:
+        metadata:
+          labels:
+            app.kubernetes.io/name: taric-legal-notes-updater
+        spec:
+          backoffLimit: 1
+          activeDeadlineSeconds: 3600
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/name: taric-legal-notes-updater
+            spec:
+              restartPolicy: Never
+              imagePullSecrets:
+                - name: '{{ include "app.pullSecretName" . }}'
+              containers:
+                - name: legal-notes-updater
+                  image: '{{ include "app.imageRepository" . }}:{{ required "imageTag is empty — load versions/taric.yaml" .Values.imageTag }}'
+                  imagePullPolicy: IfNotPresent
+                  args: ["bundle", "exec", "rake", "legal_notes:update"]
+                  envFrom:
+                    - secretRef:
+                        name: '{{ include "app.secretName" . }}'
+                  env:
+                    - name: DB_HOST
+                      value: '{{ .Values.env.DB_HOST }}'
+                    - name: DB_PORT
+                      value: '{{ .Values.env.DB_PORT }}'
+                    - name: POSTGRES_DB
+                      value: '{{ .Values.env.POSTGRES_DB }}'
+                    - name: POSTGRES_USER
+                      value: '{{ .Values.env.POSTGRES_USER }}'
+                    - name: SKIP_DB_PREPARE
+                      value: "1"
+                    - name: NOMENCLATURE_FEED_DIR
+                      value: /app/tmp/nomenclatures
+                  # Same as the updater for now; pdftotext + the parser are
+                  # unmeasured in the cluster.
                   resources:
                     requests:
                       cpu: 100m

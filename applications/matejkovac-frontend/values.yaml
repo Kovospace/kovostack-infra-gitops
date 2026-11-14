@@ -1,0 +1,41 @@
+---
+name: matejkovac-frontend
+image: matejkovac-frontend
+# imageTag lives in versions/matejkovac-frontend.yaml — written by CI, loaded after this
+# file. Setting it here too would create a second source of truth that always
+# loses.
+
+# Nastavenie domény
+# Static Vite bundle served by nginx-unprivileged (uid 101) on 8080.
+containerPort: 8080
+# The apex. *.matejkovac.sk subdomains belong to other apps and the platform
+# (registry, secrets); this Ingress claims only the two exact names below.
+host: matejkovac.sk
+# Also serves www.matejkovac.sk on the same certificate. The chart serves it,
+# it does not redirect it to the apex — there is no redirect switch in the
+# chart yet. Both names already have an A record on the VM.
+wwwAlias: true
+
+# Probes render only when this is set; the image answers /healthz with 200 "ok".
+healthPath: /healthz
+
+# Bez external-secrets: nesynchronizuje sa žiadny matejkovac-frontend-secrets.
+# A static page with no runtime configuration at all — no backend, no env vars.
+# Pulling from the private registry still works: that credential is a
+# separate Secret and is not switched off here.
+secrets:
+  enabled: false
+
+# Volumes
+# nie sú
+
+# Nothing is configured at runtime; the image is the same everywhere.
+env: {}
+
+# Tiny static nginx — same sizing as inzeratnik-frontend.
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    memory: 128Mi

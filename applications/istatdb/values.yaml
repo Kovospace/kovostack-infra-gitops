@@ -15,8 +15,10 @@ persistence:
 env:
   RAILS_ENV: production
 
+# Infisical folder /istatdb must hold BASIC_AUTH_USER and BASIC_AUTH_PASSWORD:
+# the image's nginx refuses to start without them (docker-entrypoint.sh).
 secrets:
-  enabled: false
+  enabled: true
 
 resources:
   requests:

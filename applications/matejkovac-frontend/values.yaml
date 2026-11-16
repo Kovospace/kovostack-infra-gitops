@@ -8,12 +8,16 @@ image: matejkovac-frontend
 # Nastavenie domény
 # Static Vite bundle served by nginx-unprivileged (uid 101) on 8080.
 containerPort: 8080
-# The apex. *.matejkovac.sk subdomains belong to other apps and the platform
-# (registry, secrets); this Ingress claims only the two exact names below.
-host: matejkovac.sk
-# Also serves www.matejkovac.sk on the same certificate. The chart serves it,
-# it does not redirect it to the apex — there is no redirect switch in the
-# chart yet. Both names already have an A record on the VM.
+# The apexes (list form needs chart-app >= 1.9.0). *.matejkovac.sk subdomains
+# belong to other apps and the platform (registry, secrets); this Ingress
+# claims only the exact names below plus their www. aliases.
+host:
+  - matejkovac.sk
+  - matejkovac.cz
+# Also serves www.<each host> on the same certificate — four names in total.
+# The chart serves them, it does not redirect to the apex — there is no
+# redirect switch in the chart yet. Every one of the four needs an A record on
+# the VM: one missing name fails the shared certificate for all of them.
 wwwAlias: true
 
 # Probes render only when this is set; the image answers /healthz with 200 "ok".

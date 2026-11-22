@@ -18,6 +18,25 @@ persistence:
     size: 1Gi
     mountPath: /app/public/media
 
+# Nightly K8up backup to the Storage Box (charts/app README, "Backups").
+# Both volumes are backed up file by file; the live SQLite file is left out of
+# that and dumped consistently with VACUUM INTO instead. Retention is the
+# chart default.
+backup:
+  enabled: true
+  # Slot 5 of the cluster's backup window, Europe/Bratislava — the table in
+  # infrastructure/backup/README.md assigns every app's slot; change it there
+  # first.
+  schedule:
+    backup: "0 4 * * *"
+    check: "30 5 * * 3"   # Wednesday, backup + 1h30
+    prune: "30 5 * * 0"   # Sunday, backup + 1h30
+  sqlite:
+    files:
+      # The path in DATABASE_URI below, on the `data` volume. roulage's
+      # payload.config.ts reads DATABASE_URI.
+      - /app/data/roulage.db
+
 env:
   DATABASE_URI: file:/app/data/roulage.db
   # PAYLOAD_SECRET: "" # Moved into vault

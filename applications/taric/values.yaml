@@ -117,6 +117,13 @@ resources:
 # major (17) — raise both together.
 backup:
   enabled: true
+  # Slot 2 of the cluster's backup window, Europe/Bratislava — the table in
+  # infrastructure/backup/README.md assigns every app's slot; change it there
+  # first.
+  schedule:
+    backup: "15 3 * * *"
+    check: "45 4 * * 3"   # Wednesday, backup + 1h30
+    prune: "45 4 * * 0"   # Sunday, backup + 1h30
   postgres:
     enabled: true
     # env: above (git)
@@ -276,7 +283,8 @@ extraObjects:
       labels:
         app.kubernetes.io/name: taric-updater
     spec:
-      # UTC: 05:30 CET / 06:30 CEST, clear of the backup slots and 02:xx.
+      # UTC: 05:30 CET / 06:30 CEST, after taric's pg_dump (03:15) and clear
+      # of 02:xx.
       schedule: "30 4 * * *"
       concurrencyPolicy: Forbid
       startingDeadlineSeconds: 3600
@@ -352,9 +360,9 @@ extraObjects:
         app.kubernetes.io/name: taric-legal-notes-updater
     spec:
       # UTC, Sunday→Monday night: Mon 01:30 CET / 02:30 CEST. Clear of the
-      # backup slots (taric's derived pg_dump 04:33, check Wed / prune Sun
-      # 08:33, kovo-old 20:45 / 08:57 — all Europe/Bratislava) and of the
-      # updater at 04:30 UTC. UTC has no DST, so 02:30 CEST is not the chart's
+      # backup window (03:00–07:00 Europe/Bratislava, see
+      # infrastructure/backup/README.md) and of the updater at 04:30 UTC.
+      # UTC has no DST, so 02:30 CEST is not the chart's
       # 02:xx problem (that is for K8up's local-time schedules).
       schedule: "30 0 * * 1"
       concurrencyPolicy: Forbid

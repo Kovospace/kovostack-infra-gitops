@@ -72,7 +72,8 @@ at all.
 | 3 | kovo | 03:30 | 05:00 | 05:00 | volumes + Postgres (host) |
 | 4 | nsr | 03:45 | 05:15 | 05:15 | volumes + SQLite |
 | 5 | roulage | 04:00 | 05:30 | 05:30 | volumes + SQLite |
-| 6 | — next app — | 04:15 | 05:45 | 05:45 | |
+| 6 | istatdb | 04:15 | 05:45 | 05:45 | volume + SQLite |
+| 7 | — next app — | 04:30 | 06:00 | 06:00 | |
 
 The cron lines live in each app's `applications/<app>/values.yaml` under
 `backup.schedule`; this table is the place to pick a slot. **Set all three keys

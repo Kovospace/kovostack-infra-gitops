@@ -39,6 +39,28 @@ externalServices:
 # Volumes
 # nie sú
 
+# Nightly K8up backup to the Storage Box (charts/app README, "Backups"): a
+# pg_dump of the host Postgres 17, through externalServices. No volumes.
+# Retention is the chart default.
+backup:
+  enabled: true
+  # Slot 8 of the cluster's backup window, Europe/Bratislava — the table in
+  # infrastructure/backup/README.md assigns every app's slot; change it there
+  # first.
+  schedule:
+    backup: "45 4 * * *"
+    check: "15 6 * * 3"   # Wednesday, backup + 1h30
+    prune: "15 6 * * 0"   # Sunday, backup + 1h30
+  postgres:
+    enabled: true
+    urlEnv: SPRING_DATASOURCE_URL       # env: below (git)
+    # new-tab-links-backend-secrets (Infisical /new-tab-links-backend). The
+    # Flyway role, not the app's: it owns the schema, so it can read every
+    # table and sequence. The app role's grants live outside git, and a missing
+    # one would fail the dump with "permission denied".
+    userEnv: FLYWAY_USER
+    passwordEnv: FLYWAY_PASSWORD
+
 env:
 
   ### AUTH settings

@@ -20,6 +20,29 @@ persistence:
   temp:
     size: 10Gi
     mountPath: /app/uploads/temp
+    # Scratch space, not worth a backup.
+    backup: false
+
+# Nightly K8up backup to the Storage Box (charts/app README, "Backups").
+# The `files` volume file by file; `temp` is scratch space and left out. The
+# database (host Postgres 17, through externalServices) as a pg_dump.
+# Retention is the chart default.
+backup:
+  enabled: true
+  # Slot 7 of the cluster's backup window, Europe/Bratislava — the table in
+  # infrastructure/backup/README.md assigns every app's slot; change it there
+  # first.
+  schedule:
+    backup: "30 4 * * *"
+    check: "0 6 * * 3"    # Wednesday, backup + 1h30
+    prune: "0 6 * * 0"    # Sunday, backup + 1h30
+  postgres:
+    enabled: true
+    urlEnv: SPRING_DATASOURCE_URL       # env: below (git)
+    # paster-backend-secrets (Infisical /paster-backend). The app's own names:
+    # application.properties maps them to spring.datasource.username/password.
+    userEnv: SPRING_DATASOURCE_USER
+    passwordEnv: SPRING_DATASOURCE_PASS
 
 env:
   # SECRET_KEY: ${SECRET_KEY} # presunuté do vault

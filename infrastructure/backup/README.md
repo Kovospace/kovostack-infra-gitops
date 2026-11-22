@@ -72,7 +72,16 @@ at all.
 | 3 | kovo | 03:30 | 05:00 | 05:00 | volumes + Postgres (host) |
 | 4 | nsr | 03:45 | 05:15 | 05:15 | volumes + SQLite |
 | 5 | roulage | 04:00 | 05:30 | 05:30 | volumes + SQLite |
-| 6 | — next app — | 04:15 | 05:45 | 05:45 | |
+| 6 | istatdb | 04:15 | 05:45 | 05:45 | volume + SQLite |
+| 7 | — next app — | 04:30 | 06:00 | 06:00 | |
+
+**Deliberately not backed up:**
+
+- **music-pages-scraper-backend.** Its Postgres is a cache of scraped pages.
+  Losing it loses nothing that the next scrape does not rebuild.
+- **Apps without a volume or a database** (frontends, inzeratnik-basemap/photon/
+  valhalla, matejkovac-frontend). There is nothing in them that git and the
+  image registry do not already hold.
 
 The cron lines live in each app's `applications/<app>/values.yaml` under
 `backup.schedule`; this table is the place to pick a slot. **Set all three keys

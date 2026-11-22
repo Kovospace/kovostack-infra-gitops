@@ -12,6 +12,26 @@ persistence:
     size: 128Mi
     mountPath: var/app/db
 
+# Nightly K8up backup to the Storage Box (charts/app README, "Backups").
+# The `db` volume is backed up file by file; the live SQLite file is left out
+# of that and dumped consistently with VACUUM INTO instead. Retention is the
+# chart default.
+backup:
+  enabled: true
+  # Slot 6 of the cluster's backup window, Europe/Bratislava — the table in
+  # infrastructure/backup/README.md assigns every app's slot; change it there
+  # first.
+  schedule:
+    backup: "15 4 * * *"
+    check: "45 5 * * 3"   # Wednesday, backup + 1h30
+    prune: "45 5 * * 0"   # Sunday, backup + 1h30
+  sqlite:
+    files:
+      # Rails production DB: config/database.yml `db/production.sqlite3`,
+      # relative to WORKDIR /var/app — on the `db` volume (the chart reads its
+      # mountPath `var/app/db` as /var/app/db).
+      - /var/app/db/production.sqlite3
+
 env:
   RAILS_ENV: production
 

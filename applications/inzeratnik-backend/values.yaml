@@ -32,6 +32,29 @@ externalServices:
 # Volumes
 # nie sú
 
+# Nightly K8up backup to the Storage Box (charts/app README, "Backups"): a
+# pg_dump of the host Postgres 17, through externalServices. No volumes.
+# Retention is the chart default.
+backup:
+  enabled: true
+  # Slot 9 of the cluster's backup window, Europe/Bratislava — the table in
+  # infrastructure/backup/README.md assigns every app's slot; change it there
+  # first.
+  schedule:
+    backup: "0 5 * * *"
+    check: "30 6 * * 3"   # Wednesday, backup + 1h30
+    prune: "30 6 * * 0"   # Sunday, backup + 1h30
+  postgres:
+    enabled: true
+    urlEnv: SPRING_DATASOURCE_URL       # env: below (git)
+    # inzeratnik-backend-secrets (Infisical /inzeratnik-backend). The Flyway
+    # role inzeratnik_migrations, not inzeratnik_app: it owns the schema, so it
+    # can read every table and sequence. Roles are managed outside git
+    # (inzeratnik-migrations has no GRANTs), and a missing grant would fail the
+    # dump with "permission denied".
+    userEnv: FLYWAY_USER
+    passwordEnv: FLYWAY_PASSWORD
+
 # Secrets come from Infisical folder /inzeratnik-backend (the chart's default path), through
 # envFrom into both the app and the migrations init container:
 #   SPRING_DATASOURCE_USERNAME / SPRING_DATASOURCE_PASSWORD  – role inzeratnik_app (read/write)

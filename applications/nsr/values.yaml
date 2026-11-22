@@ -18,6 +18,25 @@ persistence:
     size: 10Gi
     mountPath: /app/public/media
 
+# Nightly K8up backup to the Storage Box (charts/app README, "Backups").
+# Both volumes are backed up file by file; the live SQLite file is left out of
+# that and dumped consistently with VACUUM INTO instead. Retention is the
+# chart default.
+backup:
+  enabled: true
+  # Slot 4 of the cluster's backup window, Europe/Bratislava — the table in
+  # infrastructure/backup/README.md assigns every app's slot; change it there
+  # first.
+  schedule:
+    backup: "45 3 * * *"
+    check: "15 5 * * 3"   # Wednesday, backup + 1h30
+    prune: "15 5 * * 0"   # Sunday, backup + 1h30
+  sqlite:
+    files:
+      # The path in DATABASE_URI below, on the `data` volume. nsr's
+      # payload.config.ts reads DATABASE_URI.
+      - /app/data/nsr.db
+
 env:
   DATABASE_URI: file:/app/data/nsr.db
   # PAYLOAD_SECRET: "" # Moved into vault

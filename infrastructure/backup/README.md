@@ -70,7 +70,8 @@ at all.
 | 1 | kovo-old | 03:00 | 04:30 | 04:30 | volumes + SQLite |
 | 2 | taric | 03:15 | 04:45 | 04:45 | Postgres (in-namespace) |
 | 3 | kovo | 03:30 | 05:00 | 05:00 | volumes + Postgres (host) |
-| 4 | — next app — | 03:45 | 05:15 | 05:15 | |
+| 4 | nsr | 03:45 | 05:15 | 05:15 | volumes + SQLite |
+| 5 | — next app — | 04:00 | 05:30 | 05:30 | |
 
 The cron lines live in each app's `applications/<app>/values.yaml` under
 `backup.schedule`; this table is the place to pick a slot. **Set all three keys

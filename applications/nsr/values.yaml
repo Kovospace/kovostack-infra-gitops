@@ -14,7 +14,9 @@ persistence:
     size: 128Mi
     mountPath: /app/data
   uploads:
-    # Uploaded flyers and DJ sets. Inside Next.js' public/ tree, so these are
+    # Payload uploads: flyers, set images, music and content media, each a
+    # collection's staticDir under public/media. Without the volume they would
+    # live in the container and be lost with the pod.
     size: 10Gi
     mountPath: /app/public/media
 

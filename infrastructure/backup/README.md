@@ -73,7 +73,10 @@ at all.
 | 4 | nsr | 03:45 | 05:15 | 05:15 | volumes + SQLite |
 | 5 | roulage | 04:00 | 05:30 | 05:30 | volumes + SQLite |
 | 6 | istatdb | 04:15 | 05:45 | 05:45 | volume + SQLite |
-| 7 | — next app — | 04:30 | 06:00 | 06:00 | |
+| 7 | paster-backend | 04:30 | 06:00 | 06:00 | volume + Postgres (host) |
+| 8 | new-tab-links-backend | 04:45 | 06:15 | 06:15 | Postgres (host) |
+| 9 | inzeratnik-backend | 05:00 | 06:30 | 06:30 | Postgres (host) |
+| 10 | — next app (last that fits) — | 05:15 | 06:45 | 06:45 | |
 
 **Deliberately not backed up:**
 

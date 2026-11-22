@@ -48,6 +48,35 @@ deliberate simplification for one owner on one cluster. Per-app credentials
 would need `--htpasswd` plus `--private-repos` on the gateway and a key per app
 in Infisical.
 
+## Schedule
+
+Every backup, check and prune runs between **03:00 and 07:00 Europe/Bratislava**
+(the K8up operator's time zone). Each app gets a 15-minute **slot**, starting at
+03:00, in the order it was added:
+
+- **backup** daily at its slot;
+- **check** on Wednesdays and **prune** on Sundays, 1 h 30 min after its slot.
+  restic locks the repository for both, so they must not overlap the app's own
+  backup. They may overlap *other* apps' backups, which use other repositories
+  through the same gateway.
+
+16 slots fit before 07:00, but the check/prune offset limits the window to
+**ten apps**: slot 10 backs up at 05:15 and checks/prunes at 06:45. `02:xx` is
+outside the window on purpose, because on DST change days it runs twice or not
+at all.
+
+| Slot | App | Backup (daily) | Check (Wed) | Prune (Sun) | What |
+|---|---|---|---|---|---|
+| 1 | kovo-old | 03:00 | 04:30 | 04:30 | volumes + SQLite |
+| 2 | taric | 03:15 | 04:45 | 04:45 | Postgres (in-namespace) |
+| 3 | kovo | 03:30 | 05:00 | 05:00 | volumes + Postgres (host) |
+| 4 | — next app — | 03:45 | 05:15 | 05:15 | |
+
+The cron lines live in each app's `applications/<app>/values.yaml` under
+`backup.schedule`; this table is the place to pick a slot. **Set all three keys
+when you add an app.** An empty key falls back to the chart's derived slot,
+which can land outside this window.
+
 ## Infisical `/backup`
 
 | Key | Used by | Value |

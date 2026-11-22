@@ -28,8 +28,31 @@ persistence:
     size: 1Gi
     mountPath: /app/public/icons
 
+# Nightly K8up backup to the Storage Box (charts/app README, "Backups").
+# media, images and icons file by file; the database (host Postgres 17, through
+# externalServices) as a pg_dump. format: custom writes the same pg_dump -Fc
+# file the admin export (/admin-backup/export) packs as db.dump, so a restored
+# snapshot plus the three folders can be repacked for its import on localhost.
+# Retention is the chart default.
+backup:
+  enabled: true
+  # Slot 3 of the cluster's backup window, Europe/Bratislava — the table in
+  # infrastructure/backup/README.md assigns every app's slot; change it there
+  # first.
+  schedule:
+    backup: "30 3 * * *"
+    check: "0 5 * * 3"    # Wednesday, backup + 1h30
+    prune: "0 5 * * 0"    # Sunday, backup + 1h30
+  postgres:
+    enabled: true
+    # Infisical /kovo. kovospace-frontend reads DATABASE_URL
+    # (src/payload.config.ts), not DATABASE_URI; an empty variable fails the
+    # backup instead of dumping a default database.
+    urlEnv: DATABASE_URL
+    format: custom
+
 env:
-  # DATABASE_URI: "" # Moved into vault
+  # DATABASE_URL: "" # Moved into vault
   # PAYLOAD_SECRET: "" # Moved into vault
   NEXT_PUBLIC_SERVER_URL: https://kovo.space
   ALLOWED_ORIGINS: https://www.kovo.space,https://kovo.space

@@ -1,7 +1,7 @@
 ---
 name: roulage
 image: roulage-frontend
-# imageTag lives in versions/nsr.yaml — written by CI, loaded after this file.
+# imageTag lives in versions/roulage.yaml — written by CI, loaded after this file.
 # Setting it here too would create a second source of truth that always loses.
 
 containerPort: 3000
@@ -14,7 +14,9 @@ persistence:
     size: 128Mi
     mountPath: /app/data
   uploads:
-    # Uploaded flyers and DJ sets. Inside Next.js' public/ tree, so these are
+    # Payload uploads: certificates and content media, each a collection's
+    # staticDir under public/media. Without the volume they would live in the
+    # container and be lost with the pod.
     size: 1Gi
     mountPath: /app/public/media
 

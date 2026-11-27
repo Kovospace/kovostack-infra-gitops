@@ -1,0 +1,6 @@
+# PLACEHOLDER — set before merging: the sha-<short> tag of a
+# taric-sk-frontend image built from main at or after e871881 (the first
+# with db/tsearch_data). Pinned by hand; re-pin only when the dictionary
+# changes. An empty value fails the render on purpose.
+initImageTags:
+  tsearch-dictionary: ""

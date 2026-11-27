@@ -207,6 +207,47 @@ extraObjects:
             app.kubernetes.io/name: taric-postgres
         spec:
           terminationGracePeriodSeconds: 60
+          # The app image is in our registry (init container below).
+          imagePullSecrets:
+            - name: '{{ include "app.pullSecretName" . }}'
+          # Slovak Hunspell dictionary `taric_sk` for the description search
+          # (taric-sk-frontend db/tsearch_data/README.md). PostgreSQL reads
+          # dictionary files only from $SHAREDIR/tsearch_data, and the .dict
+          # (3.2 MB) is over a ConfigMap's 1 MiB, so they are copied out of the
+          # app image, which carries them at /app/db/tsearch_data.
+          #
+          # Its own tag (initImageTags.tsearch-dictionary in
+          # versions/taric-init.yaml), NOT the app's imageTag: that one moves
+          # on every app deploy, and with it this pod template — every deploy
+          # would restart the database. Re-pin only when db/tsearch_data
+          # changes in the app repo. `required`: an empty tag fails the render
+          # (ArgoCD keeps what runs) rather than leaving Postgres in
+          # ImagePullBackOff.
+          #
+          # `command`, not args: the image's entrypoint waits for Postgres,
+          # which cannot start before this container ends.
+          #
+          # Without the files nothing breaks: the search runs without lemmas
+          # and the import stores NULL lemmas.
+          initContainers:
+            - name: tsearch-dictionary
+              image: '{{ include "app.imageRepository" . }}:{{ required "initImageTags.tsearch-dictionary is empty — pin it in versions/taric-init.yaml" (index (.Values.initImageTags | default dict) "tsearch-dictionary") }}'
+              imagePullPolicy: IfNotPresent
+              command:
+                - cp
+                - /app/db/tsearch_data/taric_sk.dict
+                - /app/db/tsearch_data/taric_sk.affix
+                - /tsearch_data/
+              # Pod requests are max(init, app), so this reserves nothing extra.
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
+              volumeMounts:
+                - name: tsearch-data
+                  mountPath: /tsearch_data
           containers:
             - name: postgres
               # Official Debian image (unaccent, glibc locales). Minor in step
@@ -251,10 +292,25 @@ extraObjects:
               volumeMounts:
                 - name: data
                   mountPath: /var/lib/postgresql/data
+                # File by file (subPath): mounting the whole tsearch_data
+                # directory would hide the image's own files, among them
+                # unaccent.rules, which the search also needs.
+                - name: tsearch-data
+                  mountPath: /usr/share/postgresql/17/tsearch_data/taric_sk.dict
+                  subPath: taric_sk.dict
+                  readOnly: true
+                - name: tsearch-data
+                  mountPath: /usr/share/postgresql/17/tsearch_data/taric_sk.affix
+                  subPath: taric_sk.affix
+                  readOnly: true
           volumes:
             - name: data
               persistentVolumeClaim:
                 claimName: taric-postgres-data
+            # Filled by the tsearch-dictionary init container on every pod start.
+            - name: tsearch-data
+              emptyDir:
+                sizeLimit: 16Mi
 
   # Download cache + "last imported" state of rake nomenclatures:update.
   # Re-derivable from the public feed: stock local-path, no backup, and no

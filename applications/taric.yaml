@@ -26,6 +26,7 @@ spec:
         valueFiles:
           - $values/applications/taric/values.yaml
           - $values/versions/taric.yaml
+          - $values/versions/taric-init.yaml
 
     ### Pointer na referencovaý values.yaml
     - repoURL: git@github.com:Kovospace/kovostack-infra-gitops.git

@@ -1,0 +1,5 @@
+initImageTags:
+  # registry.matejkovac.sk/apps/taric-tsearch-sk — the dictionary version
+  # (taric-ai-monorepo infra/tsearch-sk/VERSION). Pinned by hand; changes
+  # only when the dictionary does.
+  tsearch-dictionary: "25.2.3-1-r1"

@@ -207,6 +207,53 @@ extraObjects:
             app.kubernetes.io/name: taric-postgres
         spec:
           terminationGracePeriodSeconds: 60
+          # The dictionary image is in our registry (init container below).
+          imagePullSecrets:
+            - name: '{{ include "app.pullSecretName" . }}'
+          # Slovak Hunspell dictionary `taric_sk` for the description search
+          # (taric-sk-frontend db/tsearch_data/README.md). PostgreSQL reads
+          # dictionary files only from $SHAREDIR/tsearch_data, and the .dict
+          # (3.2 MB) is over a ConfigMap's 1 MiB, so an init container copies
+          # them into an emptyDir out of a dedicated image: taric-tsearch-sk
+          # (Kovospace/taric-ai-monorepo infra/tsearch-sk) — busybox, uid
+          # 65534, the files at /tsearch_data, byte-identical to the app's
+          # db/tsearch_data.
+          #
+          # Its own tag (initImageTags.tsearch-dictionary in
+          # versions/taric-init.yaml), NOT the app's imageTag: that one moves
+          # on every app deploy, and with it this pod template — every deploy
+          # would restart the database. The tag is the dictionary version
+          # (infra/tsearch-sk/VERSION) and changes only with the dictionary.
+          # `required`: an empty tag fails the render (ArgoCD keeps what runs)
+          # rather than leaving Postgres in ImagePullBackOff.
+          #
+          # The command is spelled out although the image's default CMD does
+          # the same copy into /dest — what runs before the database is
+          # readable here. No entrypoint in the image, nothing waits for
+          # Postgres.
+          #
+          # Without the files nothing breaks: the search runs without lemmas
+          # and the import stores NULL lemmas.
+          initContainers:
+            - name: tsearch-dictionary
+              # Bare name: the chart expands it to <registry.host>/apps/taric-tsearch-sk.
+              image: '{{ include "app.expandImage" (dict "image" "taric-tsearch-sk" "root" .) }}:{{ required "initImageTags.tsearch-dictionary is empty — pin it in versions/taric-init.yaml" (index (.Values.initImageTags | default dict) "tsearch-dictionary") }}'
+              imagePullPolicy: IfNotPresent
+              command:
+                - cp
+                - /tsearch_data/taric_sk.dict
+                - /tsearch_data/taric_sk.affix
+                - /dest/
+              # Pod requests are max(init, app), so this reserves nothing extra.
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
+              volumeMounts:
+                - name: tsearch-data
+                  mountPath: /dest
           containers:
             - name: postgres
               # Official Debian image (unaccent, glibc locales). Minor in step
@@ -251,10 +298,25 @@ extraObjects:
               volumeMounts:
                 - name: data
                   mountPath: /var/lib/postgresql/data
+                # File by file (subPath): mounting the whole tsearch_data
+                # directory would hide the image's own files, among them
+                # unaccent.rules, which the search also needs.
+                - name: tsearch-data
+                  mountPath: /usr/share/postgresql/17/tsearch_data/taric_sk.dict
+                  subPath: taric_sk.dict
+                  readOnly: true
+                - name: tsearch-data
+                  mountPath: /usr/share/postgresql/17/tsearch_data/taric_sk.affix
+                  subPath: taric_sk.affix
+                  readOnly: true
           volumes:
             - name: data
               persistentVolumeClaim:
                 claimName: taric-postgres-data
+            # Filled by the tsearch-dictionary init container on every pod start.
+            - name: tsearch-data
+              emptyDir:
+                sizeLimit: 16Mi
 
   # Download cache + "last imported" state of rake nomenclatures:update.
   # Re-derivable from the public feed: stock local-path, no backup, and no

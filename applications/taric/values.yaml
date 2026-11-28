@@ -207,37 +207,43 @@ extraObjects:
             app.kubernetes.io/name: taric-postgres
         spec:
           terminationGracePeriodSeconds: 60
-          # The app image is in our registry (init container below).
+          # The dictionary image is in our registry (init container below).
           imagePullSecrets:
             - name: '{{ include "app.pullSecretName" . }}'
           # Slovak Hunspell dictionary `taric_sk` for the description search
           # (taric-sk-frontend db/tsearch_data/README.md). PostgreSQL reads
           # dictionary files only from $SHAREDIR/tsearch_data, and the .dict
-          # (3.2 MB) is over a ConfigMap's 1 MiB, so they are copied out of the
-          # app image, which carries them at /app/db/tsearch_data.
+          # (3.2 MB) is over a ConfigMap's 1 MiB, so an init container copies
+          # them into an emptyDir out of a dedicated image: taric-tsearch-sk
+          # (Kovospace/taric-ai-monorepo infra/tsearch-sk) — busybox, uid
+          # 65534, the files at /tsearch_data, byte-identical to the app's
+          # db/tsearch_data.
           #
           # Its own tag (initImageTags.tsearch-dictionary in
           # versions/taric-init.yaml), NOT the app's imageTag: that one moves
           # on every app deploy, and with it this pod template — every deploy
-          # would restart the database. Re-pin only when db/tsearch_data
-          # changes in the app repo. `required`: an empty tag fails the render
-          # (ArgoCD keeps what runs) rather than leaving Postgres in
-          # ImagePullBackOff.
+          # would restart the database. The tag is the dictionary version
+          # (infra/tsearch-sk/VERSION) and changes only with the dictionary.
+          # `required`: an empty tag fails the render (ArgoCD keeps what runs)
+          # rather than leaving Postgres in ImagePullBackOff.
           #
-          # `command`, not args: the image's entrypoint waits for Postgres,
-          # which cannot start before this container ends.
+          # The command is spelled out although the image's default CMD does
+          # the same copy into /dest — what runs before the database is
+          # readable here. No entrypoint in the image, nothing waits for
+          # Postgres.
           #
           # Without the files nothing breaks: the search runs without lemmas
           # and the import stores NULL lemmas.
           initContainers:
             - name: tsearch-dictionary
-              image: '{{ include "app.imageRepository" . }}:{{ required "initImageTags.tsearch-dictionary is empty — pin it in versions/taric-init.yaml" (index (.Values.initImageTags | default dict) "tsearch-dictionary") }}'
+              # Bare name: the chart expands it to <registry.host>/apps/taric-tsearch-sk.
+              image: '{{ include "app.expandImage" (dict "image" "taric-tsearch-sk" "root" .) }}:{{ required "initImageTags.tsearch-dictionary is empty — pin it in versions/taric-init.yaml" (index (.Values.initImageTags | default dict) "tsearch-dictionary") }}'
               imagePullPolicy: IfNotPresent
               command:
                 - cp
-                - /app/db/tsearch_data/taric_sk.dict
-                - /app/db/tsearch_data/taric_sk.affix
-                - /tsearch_data/
+                - /tsearch_data/taric_sk.dict
+                - /tsearch_data/taric_sk.affix
+                - /dest/
               # Pod requests are max(init, app), so this reserves nothing extra.
               resources:
                 requests:
@@ -247,7 +253,7 @@ extraObjects:
                   memory: 64Mi
               volumeMounts:
                 - name: tsearch-data
-                  mountPath: /tsearch_data
+                  mountPath: /dest
           containers:
             - name: postgres
               # Official Debian image (unaccent, glibc locales). Minor in step

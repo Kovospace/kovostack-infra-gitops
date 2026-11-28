@@ -98,6 +98,18 @@ env:
   # it too — harmless; the updater CronJobs list their own env and do not.
   CANONICAL_HOST: taric.sk
 
+  ### Search
+  # Synonym layer of the description search (Kovospace/taric-sk-frontend#34):
+  # also matches synonym groups — WordNet plus an everyday-words list
+  # (kamión → motorové vozidlá na nákladnú dopravu, flexa → uhlové brúsky).
+  # Needs the taric_sk dictionary mounted into Postgres (#37, extraObjects
+  # below). The other SYNONYM_* variables stay at the app's defaults on
+  # purpose. Parsed at boot; images older than sha-1121242 ignore it. See
+  # https://github.com/Kovospace/taric-sk-frontend#search-settings
+  # Read only by the web container; db-prepare and the backup dump pod get
+  # it with the shared `env:` and ignore it.
+  SYNONYM_ENABLED: "true"
+
 resources:
   requests:
     cpu: 100m
